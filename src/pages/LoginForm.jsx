@@ -1,160 +1,205 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "../firebase/firebase";
 
 export default function LoginForm({ role }) {
-
   const navigate = useNavigate();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const login = async () => {
+    if (!username.trim() || !password.trim()) {
+      alert("Fill all fields");
+      return;
+    }
 
-      if(username==="" || password===""){
-          alert("Fill all fields");
+    setLoading(true);
+
+    try {
+      let collectionName = "";
+
+      switch (role) {
+        case "Admin":
+          collectionName = "admin";
+          break;
+        case "Teacher":
+          collectionName = "teachers";
+          break;
+        case "Cashier":
+          collectionName = "cashier";
+          break;
+        case "Student":
+          collectionName = "students";
+          break;
+        case "Parent":
+          collectionName = "students";
+          break;
+        default:
           return;
       }
 
-      if(role==="Admin"){
-          // later admin firestore
-          navigate("/admin/dashboard");
-          return;
+      const snapshot = await getDocs(collection(db, collectionName));
+
+      let found = false;
+
+      snapshot.forEach((item) => {
+        const data = item.data();
+
+        if (role === "Admin") {
+          if (
+            (data.email === username.trim() ||
+              data.username === username.trim()) &&
+            data.password === password.trim()
+          ) {
+            found = true;
+          }
+        }
+
+        if (role === "Teacher") {
+          if (
+            (data.username === username.trim() ||
+              data.teacherId === username.trim()) &&
+            data.password === password.trim()
+          ) {
+            found = true;
+          }
+        }
+
+        if (role === "Cashier") {
+          if (
+            data.username === username.trim() &&
+            data.password === password.trim()
+          ) {
+            found = true;
+          }
+        }
+
+        if (role === "Student") {
+          if (
+            (data.studentId === username.trim() ||
+              item.id === username.trim()) &&
+            data.password === password.trim()
+          ) {
+            found = true;
+          }
+        }
+
+        if (role === "Parent") {
+          if (
+            (data.studentId === username.trim() ||
+              data.parentPhone === username.trim()) &&
+            data.parentPassword === password.trim()
+          ) {
+            found = true;
+          }
+        }
+      });
+
+      if (!found) {
+        alert(
+          role === "Admin"
+            ? "Check your email or password"
+            : "Check user or password"
+        );
+        return;
       }
 
-      if(role==="Teacher"){
-          // later teacher firestore
-          navigate("/teacher/dashboard");
-          return;
-      }
+      if (role === "Admin") navigate("/admin/dashboard");
+      if (role === "Teacher") navigate("/teacher/dashboard");
+      if (role === "Cashier") navigate("/cashier/dashboard");
+      if (role === "Student") navigate("/student/dashboard");
+      if (role === "Parent") navigate("/parent/dashboard");
+    } catch (error) {
+      alert(
+        role === "Admin"
+          ? "Check your email or password"
+          : "Check user or password"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      if(role==="Student"){
-          // later student firestore
-          navigate("/student/dashboard");
-          return;
-      }
+  return (
+    <div
+      style={{
+        display: "flex",
+        justifyContent: "center",
+        alignItems: "center",
+        height: "100vh",
+        background: "#eef3fb",
+      }}
+    >
+      <div
+        style={{
+          width: 430,
+          background: "#fff",
+          padding: 40,
+          borderRadius: 20,
+          boxShadow: "0 0 30px rgba(0,0,0,.1)",
+        }}
+      >
+        <h1>{role} Login</h1>
 
-      if(role==="Parent"){
-          // later parent firestore
-          navigate("/parent/dashboard");
-          return;
-      }
+        <br />
 
-  }
+        <input
+          style={input}
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder={
+            role === "Admin"
+              ? "Admin Email or Username"
+              : role === "Teacher"
+              ? "Teacher Username"
+              : role === "Cashier"
+              ? "Cashier Username"
+              : role === "Parent"
+              ? "Student ID / Parent Phone"
+              : "Student ID"
+          }
+        />
 
-  return(
+        <br />
+        <br />
 
-<div
-style={{
-display:"flex",
-justifyContent:"center",
-alignItems:"center",
-height:"100vh",
-background:"#eef3fb"
-}}
->
+        <input
+          type="password"
+          style={input}
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="Password"
+        />
 
-<div
-style={{
-width:"430px",
-background:"white",
-padding:"40px",
-borderRadius:"20px",
-boxShadow:"0 0 30px rgba(0,0,0,.1)"
-}}
->
+        <br />
+        <br />
 
-<h1>{role} Login</h1>
-
-<br/>
-
-<input
-
-placeholder={
-role==="Admin"
-? "Admin Email"
-
-: role==="Teacher"
-? "Teacher Username"
-
-: "Student ID"
+        <button style={button} onClick={login} disabled={loading}>
+          {loading ? "LOGGING IN..." : "LOGIN"}
+        </button>
+      </div>
+    </div>
+  );
 }
 
-value={username}
+const input = {
+  width: "100%",
+  padding: "15px",
+  borderRadius: "10px",
+  border: "1px solid #ccc",
+  fontSize: "16px",
+};
 
-onChange={(e)=>setUsername(e.target.value)}
-
-style={input}
-
-/>
-
-<br/><br/>
-
-<input
-
-type="password"
-
-placeholder="Password"
-
-value={password}
-
-onChange={(e)=>setPassword(e.target.value)}
-
-style={input}
-
-/>
-
-<br/><br/>
-
-<button
-
-style={button}
-
-onClick={login}
-
->
-
-LOGIN
-
-</button>
-
-</div>
-
-</div>
-
-  )
-
-}
-
-const input={
-
-width:"100%",
-
-padding:"15px",
-
-fontSize:"17px",
-
-borderRadius:"10px",
-
-border:"1px solid #ccc"
-
-}
-
-const button={
-
-width:"100%",
-
-padding:"15px",
-
-background:"#0d6efd",
-
-color:"white",
-
-border:"none",
-
-borderRadius:"10px",
-
-fontSize:"18px",
-
-cursor:"pointer"
-
-}
+const button = {
+  width: "100%",
+  padding: "15px",
+  background: "#0d6efd",
+  color: "#fff",
+  border: "none",
+  borderRadius: "10px",
+  cursor: "pointer",
+  fontSize: "18px",
+};

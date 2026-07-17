@@ -4,6 +4,18 @@ import { useNavigate } from "react-router-dom";
 import { db } from "../../firebase/firebase";
 
 import { doc, setDoc, serverTimestamp } from "firebase/firestore";
+import {
+  GraduationCap,
+  User,
+  AtSign,
+  Lock,
+  School,
+  BookOpen,
+  Plus,
+  X,
+  Clock,
+  Loader2,
+} from "lucide-react";
 
 const weekDays = [
   "Monday",
@@ -190,349 +202,490 @@ export default function AddTeacher() {
   };
 
   return (
-    <div style={{ padding: 40, maxWidth: 900, margin: "auto", fontFamily: "sans-serif" }}>
-      <h1>Macalin Cusub Abuur</h1>
-
-      <form onSubmit={saveTeacher}>
-        <div style={topGrid}>
-          <div>
-            <label style={label}>Magaca Macalinka</label>
-            <input
-              style={input}
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-            />
+    <div style={{ background: "#0b0a1c", minHeight: "100vh", padding: "30px" }}>
+      <div
+        style={{
+          background: "linear-gradient(160deg,#151233,#181341)",
+          borderRadius: 24,
+          padding: "36px 40px",
+          border: "1px solid rgba(139,108,245,0.25)",
+          maxWidth: 1000,
+          margin: "0 auto",
+        }}
+      >
+        {/* ---- Header ---- */}
+        <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 32 }}>
+          <div
+            style={{
+              width: 52,
+              height: 52,
+              minWidth: 52,
+              borderRadius: 14,
+              background: "linear-gradient(135deg,#6d5df0,#8b6cf5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 8px 20px rgba(109,93,240,0.3)",
+            }}
+          >
+            <GraduationCap color="#fff" size={26} />
           </div>
-
           <div>
-            <label style={label}>Username</label>
-            <input
-              style={input}
-              placeholder="Tusaale: cabdi.macalin"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#fff" }}>
+              Macalin Cusub Abuur
+            </h1>
+            <p style={{ margin: "4px 0 0", color: "#8b87ad", fontSize: 13.5 }}>
+              Geli macluumaadka macalinka iyo jadwalka fasalada uu xaadirin doono.
+            </p>
           </div>
         </div>
 
-        <div>
-          <label style={label}>Password</label>
-          <input
-            style={{ ...input, maxWidth: 420 }}
-            type="password"
-            placeholder="Ugu yaraan 6 xaraf"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
-        </div>
+        <form onSubmit={saveTeacher}>
+          <div style={topGrid}>
+            <Field icon={User} label="Magaca Macalinka">
+              <input
+                style={input}
+                placeholder="Tusaale: Cabdi Xasan"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+              />
+            </Field>
 
-        <hr style={{ margin: "24px 0", border: "none", borderTop: "1px solid #eee" }} />
+            <Field icon={AtSign} label="Username">
+              <input
+                style={input}
+                placeholder="Tusaale: cabdi.macalin"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+              />
+            </Field>
+          </div>
 
-        <h3>Fasalada uu Xaadirin Doono</h3>
+          <div style={{ marginBottom: 26 }}>
+            <Field icon={Lock} label="Password">
+              <input
+                style={{ ...input, maxWidth: 420 }}
+                type="password"
+                placeholder="Ugu yaraan 6 xaraf"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+              />
+            </Field>
+          </div>
 
-        {classBlocks.map((block, index) => (
-          <div key={index} style={classCard}>
-            <div style={classCardHeader}>
-              <span style={classCardTitle}>Fasalka #{index + 1}</span>
-              {classBlocks.length > 1 && (
-                <button
-                  type="button"
-                  onClick={() => removeClassBlock(index)}
-                  style={removeBtn}
-                >
-                  ✕ Ka saar
-                </button>
+          <hr style={{ margin: "10px 0 26px", border: "none", borderTop: "1px solid rgba(139,108,245,0.2)" }} />
+
+          <h3 style={{ color: "#fff", fontSize: 17, marginBottom: 18 }}>
+            Fasalada uu Xaadirin Doono
+          </h3>
+
+          {classBlocks.map((block, index) => (
+            <div key={index} style={classCard}>
+              <div style={classCardHeader}>
+                <span style={classCardTitle}>Fasalka #{index + 1}</span>
+                {classBlocks.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => removeClassBlock(index)}
+                    style={removeBtn}
+                  >
+                    <X size={13} /> Ka saar
+                  </button>
+                )}
+              </div>
+
+              <div style={twoColGrid}>
+                <Field icon={School} label="Class">
+                  <select
+                    style={input}
+                    value={block.className}
+                    onChange={(e) =>
+                      updateClassBlock(index, "className", e.target.value)
+                    }
+                  >
+                    <option value="">-- Dooro --</option>
+                    {classOptions.map((c) => (
+                      <option key={c}>{c}</option>
+                    ))}
+                  </select>
+                </Field>
+
+                <Field icon={BookOpen} label="Maadada">
+                  <input
+                    style={input}
+                    placeholder="Tusaale: Mathematics"
+                    value={block.subject}
+                    onChange={(e) =>
+                      updateClassBlock(index, "subject", e.target.value)
+                    }
+                  />
+                </Field>
+              </div>
+
+              <div style={{ marginTop: 18 }}>
+                <label style={label}>Maalmaha Toddobaadka</label>
+                <div style={dayRow}>
+                  {weekDays.map((day) => {
+                    const active = block.days.includes(day);
+                    return (
+                      <button
+                        type="button"
+                        key={day}
+                        onClick={() => toggleDay(index, day)}
+                        style={{
+                          ...dayPill,
+                          background: active
+                            ? "linear-gradient(90deg,#6d5df0,#8b6cf5)"
+                            : "rgba(255,255,255,0.03)",
+                          color: active ? "#fff" : "#a9a6c4",
+                          borderColor: active
+                            ? "transparent"
+                            : "rgba(139,108,245,0.3)",
+                        }}
+                      >
+                        {day}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Waqtiga xiisadaha maalin kasta oo la doortay */}
+              {block.days.length > 0 && (
+                <div style={{ marginTop: 22 }}>
+                  <label style={label}>Saacadaha Xiisadaha</label>
+
+                  {block.days.map((day) => {
+                    const sessions = block.daySessions[day] || [];
+                    return (
+                      <div key={day} style={dayScheduleCard}>
+                        <div style={dayScheduleHeader}>
+                          <span style={dayScheduleTitle}>
+                            <Clock size={14} color="#8b6cf5" />
+                            {day}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => addSessionToDay(index, day)}
+                            style={addSessionBtn}
+                          >
+                            <Plus size={12} /> Xiisad kale
+                          </button>
+                        </div>
+
+                        {sessions.map((session, sIdx) => (
+                          <div key={sIdx} style={sessionRow}>
+                            <span style={sessionLabel}>
+                              Xiisadda #{sIdx + 1}
+                            </span>
+
+                            <div>
+                              <label style={miniLabel}>Waqtiga Bilowga</label>
+                              <input
+                                type="time"
+                                style={timeInput}
+                                value={session.startTime}
+                                onChange={(e) =>
+                                  updateSessionTime(
+                                    index,
+                                    day,
+                                    sIdx,
+                                    "startTime",
+                                    e.target.value
+                                  )
+                                }
+                              />
+                            </div>
+
+                            <div>
+                              <label style={miniLabel}>Waqtiga Dhamaadka</label>
+                              <input
+                                type="time"
+                                style={timeInput}
+                                value={session.endTime}
+                                onChange={(e) =>
+                                  updateSessionTime(
+                                    index,
+                                    day,
+                                    sIdx,
+                                    "endTime",
+                                    e.target.value
+                                  )
+                                }
+                              />
+                            </div>
+
+                            {sessions.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removeSessionFromDay(index, day, sIdx)
+                                }
+                                style={removeSessionBtn}
+                              >
+                                <X size={14} />
+                              </button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </div>
+          ))}
 
-            <div style={twoColGrid}>
-              <div>
-                <label style={label}>Class</label>
-                <select
-                  style={input}
-                  value={block.className}
-                  onChange={(e) =>
-                    updateClassBlock(index, "className", e.target.value)
-                  }
-                >
-                  <option value="">-- Dooro --</option>
-                  {classOptions.map((c) => (
-                    <option key={c}>{c}</option>
-                  ))}
-                </select>
-              </div>
+          <button type="button" onClick={addClassBlock} style={addBlockBtn}>
+            <Plus size={16} /> Ku dar Fasal/Maado Kale
+          </button>
 
-              <div>
-                <label style={label}>Maadada</label>
-                <input
-                  style={input}
-                  placeholder="Tusaale: Mathematics"
-                  value={block.subject}
-                  onChange={(e) =>
-                    updateClassBlock(index, "subject", e.target.value)
-                  }
-                />
-              </div>
-            </div>
-
-            <div style={{ marginTop: 16 }}>
-              <label style={label}>Maalmaha Toddobaadka</label>
-              <div style={dayRow}>
-                {weekDays.map((day) => {
-                  const active = block.days.includes(day);
-                  return (
-                    <button
-                      type="button"
-                      key={day}
-                      onClick={() => toggleDay(index, day)}
-                      style={{
-                        ...dayPill,
-                        background: active ? "#0d6efd" : "white",
-                        color: active ? "white" : "#333",
-                        borderColor: active ? "#0d6efd" : "#ccc",
-                      }}
-                    >
-                      {day}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Waqtiga xiisadaha maalin kasta oo la doortay */}
-            {block.days.length > 0 && (
-              <div style={{ marginTop: 20 }}>
-                <label style={label}>Saacadaha Xiisadaha</label>
-
-                {block.days.map((day) => {
-                  const sessions = block.daySessions[day] || [];
-                  return (
-                    <div key={day} style={dayScheduleCard}>
-                      <div style={dayScheduleHeader}>
-                        <span style={dayScheduleTitle}>{day}</span>
-                        <button
-                          type="button"
-                          onClick={() => addSessionToDay(index, day)}
-                          style={addSessionBtn}
-                        >
-                          + Xiisad kale
-                        </button>
-                      </div>
-
-                      {sessions.map((session, sIdx) => (
-                        <div key={sIdx} style={sessionRow}>
-                          <span style={sessionLabel}>
-                            Xiisadda #{sIdx + 1}
-                          </span>
-
-                          <div>
-                            <label style={miniLabel}>Waqtiga Bilowga</label>
-                            <input
-                              type="time"
-                              style={timeInput}
-                              value={session.startTime}
-                              onChange={(e) =>
-                                updateSessionTime(
-                                  index,
-                                  day,
-                                  sIdx,
-                                  "startTime",
-                                  e.target.value
-                                )
-                              }
-                            />
-                          </div>
-
-                          <div>
-                            <label style={miniLabel}>Waqtiga Dhamaadka</label>
-                            <input
-                              type="time"
-                              style={timeInput}
-                              value={session.endTime}
-                              onChange={(e) =>
-                                updateSessionTime(
-                                  index,
-                                  day,
-                                  sIdx,
-                                  "endTime",
-                                  e.target.value
-                                )
-                              }
-                            />
-                          </div>
-
-                          {sessions.length > 1 && (
-                            <button
-                              type="button"
-                              onClick={() =>
-                                removeSessionFromDay(index, day, sIdx)
-                              }
-                              style={removeSessionBtn}
-                            >
-                              ✕
-                            </button>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  );
-                })}
-              </div>
+          <button type="submit" disabled={saving} style={submitBtn}>
+            {saving ? (
+              <>
+                <Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} />
+                Kaydinaya...
+              </>
+            ) : (
+              <>
+                <GraduationCap size={18} />
+                Abuur Macalin + Fasalada
+              </>
             )}
-          </div>
-        ))}
+          </button>
+        </form>
+      </div>
 
-        <button type="button" onClick={addClassBlock} style={addBlockBtn}>
-          + Ku dar Fasal/Maado Kale
-        </button>
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        input::placeholder {
+          color: #6b6890;
+        }
+        select option {
+          background: #1e1a4a;
+          color: #ffffff;
+        }
+        input[type="time"]::-webkit-calendar-picker-indicator {
+          filter: invert(1);
+          opacity: 0.7;
+        }
+      `}</style>
+    </div>
+  );
+}
 
-        <button type="submit" disabled={saving} style={submitBtn}>
-          {saving ? "Kaydinaya..." : "🚀 Abuur Macalin + Fasalada"}
-        </button>
-      </form>
+// ---- Qaab-dhismeedka field kasta (icon + label + input) ----
+function Field({ icon: Icon, label: labelText, children }) {
+  return (
+    <div>
+      <label style={label}>
+        <Icon size={15} color="#8b6cf5" />
+        {labelText}
+      </label>
+      {children}
     </div>
   );
 }
 
 const label = {
-  display: "block",
+  display: "flex",
+  alignItems: "center",
+  gap: 7,
   fontSize: 14,
-  color: "#333",
-  marginBottom: 6,
+  fontWeight: 600,
+  color: "#fff",
+  marginBottom: 8,
 };
+
 const input = {
   width: "100%",
-  padding: 12,
-  borderRadius: 8,
-  border: "1px solid #ddd",
+  padding: "12px 14px",
+  borderRadius: 10,
+  border: "1.5px solid rgba(139,108,245,0.3)",
   boxSizing: "border-box",
+  fontSize: 14,
+  color: "#e5e3f7",
+  background: "rgba(255,255,255,0.02)",
+  outline: "none",
 };
+
 const topGrid = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
-  gap: 20,
-  marginBottom: 15,
+  gap: 22,
+  marginBottom: 22,
 };
+
 const twoColGrid = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
   gap: 20,
 };
+
 const classCard = {
-  background: "#f7f8fa",
-  border: "1px solid #eee",
-  borderRadius: 12,
-  padding: 20,
-  marginBottom: 16,
+  background: "rgba(255,255,255,0.02)",
+  border: "1px solid rgba(139,108,245,0.2)",
+  borderRadius: 16,
+  padding: 22,
+  marginBottom: 18,
 };
+
 const classCardHeader = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  marginBottom: 16,
+  marginBottom: 18,
 };
+
 const classCardTitle = {
-  color: "#0d6efd",
-  fontWeight: "bold",
+  color: "#8b6cf5",
+  fontWeight: 700,
+  fontSize: 15,
 };
+
 const removeBtn = {
-  background: "none",
-  border: "none",
-  color: "#e74c3c",
+  background: "rgba(239,68,68,0.12)",
+  border: "1px solid rgba(239,68,68,0.3)",
+  color: "#f87171",
   cursor: "pointer",
-  fontSize: 13,
+  fontSize: 12.5,
+  borderRadius: 8,
+  padding: "6px 10px",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 5,
 };
+
 const dayRow = {
   display: "flex",
   gap: 10,
   flexWrap: "wrap",
 };
+
 const dayPill = {
-  padding: "8px 16px",
+  padding: "9px 18px",
   borderRadius: 20,
-  border: "1px solid #ccc",
+  border: "1.5px solid",
   cursor: "pointer",
   fontSize: 13,
+  fontWeight: 600,
 };
+
 const addBlockBtn = {
-  background: "white",
-  border: "1px solid #0d6efd",
-  color: "#0d6efd",
-  padding: "12px 20px",
-  borderRadius: 8,
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 8,
+  background: "rgba(255,255,255,0.03)",
+  border: "1.5px solid rgba(139,108,245,0.4)",
+  color: "#8b6cf5",
+  padding: "13px 22px",
+  borderRadius: 12,
   cursor: "pointer",
-  fontWeight: "bold",
-  marginBottom: 20,
-  display: "block",
+  fontWeight: 700,
+  fontSize: 14,
+  marginBottom: 22,
 };
+
 const submitBtn = {
-  background: "#0d6efd",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 10,
+  background: "linear-gradient(90deg,#6d5df0,#8b6cf5)",
   color: "#fff",
   border: "none",
-  padding: "15px",
+  padding: "16px",
   width: "100%",
-  borderRadius: 10,
-  fontWeight: "bold",
+  borderRadius: 14,
+  fontWeight: 700,
   cursor: "pointer",
   fontSize: 15,
+  boxShadow: "0 10px 24px rgba(109,93,240,0.35)",
 };
 
 const dayScheduleCard = {
-  background: "white",
-  border: "1px solid #e2e6ea",
-  borderRadius: 8,
-  padding: 14,
-  marginTop: 10,
+  background: "rgba(255,255,255,0.02)",
+  border: "1px solid rgba(139,108,245,0.15)",
+  borderRadius: 12,
+  padding: 16,
+  marginTop: 12,
 };
+
 const dayScheduleHeader = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  marginBottom: 10,
+  marginBottom: 12,
 };
+
 const dayScheduleTitle = {
-  fontWeight: "bold",
-  color: "#333",
+  display: "flex",
+  alignItems: "center",
+  gap: 7,
+  fontWeight: 700,
+  color: "#fff",
   fontSize: 14,
 };
+
 const addSessionBtn = {
-  background: "none",
-  border: "1px solid #0d6efd",
-  color: "#0d6efd",
-  borderRadius: 6,
-  padding: "4px 10px",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 5,
+  background: "rgba(139,108,245,0.1)",
+  border: "1px solid rgba(139,108,245,0.4)",
+  color: "#8b6cf5",
+  borderRadius: 8,
+  padding: "6px 12px",
   fontSize: 12,
   cursor: "pointer",
+  fontWeight: 600,
 };
+
 const sessionRow = {
   display: "flex",
-  gap: 14,
+  gap: 16,
   alignItems: "flex-end",
-  marginBottom: 10,
+  marginBottom: 12,
   flexWrap: "wrap",
 };
+
 const sessionLabel = {
-  fontSize: 12,
-  color: "#666",
+  fontSize: 12.5,
+  color: "#a9a6c4",
   minWidth: 80,
-  marginBottom: 8,
+  marginBottom: 10,
 };
+
 const miniLabel = {
   display: "block",
-  fontSize: 11,
-  color: "#888",
-  marginBottom: 4,
+  fontSize: 11.5,
+  color: "#8b87ad",
+  marginBottom: 6,
 };
+
 const timeInput = {
-  padding: "6px 8px",
-  borderRadius: 6,
-  border: "1px solid #ccc",
+  padding: "8px 10px",
+  borderRadius: 8,
+  border: "1.5px solid rgba(139,108,245,0.3)",
+  background: "rgba(255,255,255,0.02)",
+  color: "#e5e3f7",
+  fontSize: 13.5,
+  colorScheme: "dark",
 };
+
 const removeSessionBtn = {
-  background: "none",
-  border: "none",
-  color: "#e74c3c",
+  background: "rgba(239,68,68,0.12)",
+  border: "1px solid rgba(239,68,68,0.3)",
+  color: "#f87171",
   cursor: "pointer",
-  fontSize: 13,
-  marginBottom: 8,
+  borderRadius: 7,
+  width: 28,
+  height: 28,
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  marginBottom: 10,
 };

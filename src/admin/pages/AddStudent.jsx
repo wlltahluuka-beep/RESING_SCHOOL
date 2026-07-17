@@ -5,11 +5,23 @@ import {
   setDoc,
   collection,
   getDocs,
-  query,
-  where,
   updateDoc,
   arrayUnion,
 } from "firebase/firestore";
+import {
+  UserPlus,
+  User,
+  School,
+  Wallet,
+  Phone,
+  Smartphone,
+  MapPin,
+  BookOpen,
+  Heart,
+  Lock,
+  Camera,
+  Loader2,
+} from "lucide-react";
 
 const classOptions = ["1", "2", "3", "4", "5", "6", "7", "8", "F1", "F2", "F3", "F4"];
 
@@ -27,6 +39,9 @@ export default function AddStudent() {
     studentPhoto: null,
   });
 
+  const [photoPreview, setPhotoPreview] = useState(null);
+  const [saving, setSaving] = useState(false);
+
   const handleChange = (e) => {
     setStudent({
       ...student,
@@ -35,14 +50,16 @@ export default function AddStudent() {
   };
 
   const handleFileChange = (e) => {
+    const file = e.target.files[0];
     setStudent({
       ...student,
-      studentPhoto: e.target.files[0],
+      studentPhoto: file,
     });
+    if (file) {
+      setPhotoPreview(URL.createObjectURL(file));
+    }
   };
 
-  // Dhammaan macalimiinta fasalkan (className) leh ayaa loo daraa liiskooda
-  // ardayda, kaliya studentId + fullName.
   const attachStudentToClassTeachers = async (className, studentId, fullName) => {
     const teachersSnap = await getDocs(collection(db, "teachers"));
 
@@ -64,10 +81,17 @@ export default function AddStudent() {
 
   const saveStudent = async () => {
     try {
+      if (!student.fullName.trim()) {
+        alert("Fadlan geli Magaca Ardayga");
+        return;
+      }
+
       if (!student.className) {
         alert("Fadlan dooro Class");
         return;
       }
+
+      setSaving(true);
 
       const existingSnap = await getDocs(collection(db, "students"));
       const studentId = String(existingSnap.size + 1).padStart(4, "0");
@@ -106,129 +130,239 @@ export default function AddStudent() {
       );
 
       alert("Student Saved Successfully: " + student.fullName + "\nStudent ID: " + studentId);
+
+      setStudent({
+        fullName: "",
+        className: "",
+        monthlyFee: "",
+        parentPhone: "",
+        studentPhone: "",
+        district: "",
+        previousSchool: "",
+        orphanStatus: "No",
+        parentPassword: "",
+        studentPhoto: null,
+      });
+      setPhotoPreview(null);
     } catch (err) {
       console.log(err);
       alert(err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div style={{ padding: 30, fontFamily: "sans-serif", maxWidth: 800 }}>
-      <h1 style={{ color: "#1f7a3f" }}>📝 Register New Student</h1>
-
-      <div style={grid}>
-        <div>
-          <label style={label}>Full Name</label>
-          <input
-            style={input}
-            name="fullName"
-            value={student.fullName}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div>
-          <label style={label}>Class Name</label>
-          <select
-            style={input}
-            name="className"
-            value={student.className}
-            onChange={handleChange}
+    <div style={{ background: "#0b0a1c", minHeight: "100vh", padding: "30px" }}>
+      <div
+        style={{
+          background: "linear-gradient(160deg,#151233,#181341)",
+          borderRadius: 24,
+          padding: "36px 40px",
+          border: "1px solid rgba(139,108,245,0.25)",
+          maxWidth: 1220,
+          margin: "0 auto",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 24, marginBottom: 36 }}>
+          <label
+            htmlFor="studentPhoto"
+            style={{
+              width: 110,
+              height: 110,
+              minWidth: 110,
+              borderRadius: "50%",
+              background: photoPreview
+                ? `url(${photoPreview}) center/cover`
+                : "rgba(139,108,245,0.08)",
+              border: "2px dashed #6d5df0",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              cursor: "pointer",
+              overflow: "hidden",
+            }}
           >
-            <option value="">Select Class</option>
-            {classOptions.map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label style={label}>Monthly Fee ($)</label>
+            {!photoPreview && <Camera color="#8b6cf5" size={30} />}
+          </label>
           <input
-            style={input}
-            type="number"
-            name="monthlyFee"
-            value={student.monthlyFee}
-            onChange={handleChange}
+            id="studentPhoto"
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            style={{ display: "none" }}
           />
+
+          <div>
+            <div style={{ fontWeight: 700, color: "#fff", fontSize: 22 }}>
+              Sawirka Ardayga
+            </div>
+            <div style={{ color: "#8b87ad", fontSize: 14, marginTop: 6 }}>
+              Riix goobta si aad sawir uga soo dooratid (ikhtiyaari)
+            </div>
+          </div>
         </div>
 
-        <div>
-          <label style={label}>Parent Phone</label>
-          <input
-            style={input}
-            name="parentPhone"
-            value={student.parentPhone}
-            onChange={handleChange}
-          />
+        <div style={grid}>
+          <Field icon={User} label="Full Name">
+            <input
+              style={input}
+              name="fullName"
+              placeholder="Tusaale: Ahmed Cali"
+              value={student.fullName}
+              onChange={handleChange}
+            />
+          </Field>
+
+          <Field icon={School} label="Class Name">
+            <select
+              style={input}
+              name="className"
+              value={student.className}
+              onChange={handleChange}
+            >
+              <option value="">Select Class</option>
+              {classOptions.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </Field>
+
+          <Field icon={Wallet} label="Monthly Fee ($)">
+            <input
+              style={input}
+              type="number"
+              name="monthlyFee"
+              placeholder="0.00"
+              value={student.monthlyFee}
+              onChange={handleChange}
+            />
+          </Field>
+
+          <Field icon={Phone} label="Parent Phone">
+            <input
+              style={input}
+              name="parentPhone"
+              placeholder="61xxxxxxx"
+              value={student.parentPhone}
+              onChange={handleChange}
+            />
+          </Field>
+
+          <Field icon={Smartphone} label="Student Phone">
+            <input
+              style={input}
+              name="studentPhone"
+              placeholder="61xxxxxxx"
+              value={student.studentPhone}
+              onChange={handleChange}
+            />
+          </Field>
+
+          <Field icon={MapPin} label="District">
+            <input
+              style={input}
+              name="district"
+              placeholder="Tusaale: Hodan"
+              value={student.district}
+              onChange={handleChange}
+            />
+          </Field>
+
+          <Field icon={BookOpen} label="Previous School">
+            <input
+              style={input}
+              name="previousSchool"
+              placeholder="Magaca dugsiga hore"
+              value={student.previousSchool}
+              onChange={handleChange}
+            />
+          </Field>
+
+          <Field icon={Heart} label="Orphan Status">
+            <select
+              style={input}
+              name="orphanStatus"
+              value={student.orphanStatus}
+              onChange={handleChange}
+            >
+              <option>No</option>
+              <option>Yes</option>
+            </select>
+          </Field>
+
+          <Field icon={Lock} label="Parent Password">
+            <input
+              style={input}
+              type="password"
+              name="parentPassword"
+              placeholder="••••••••"
+              value={student.parentPassword}
+              onChange={handleChange}
+            />
+          </Field>
         </div>
 
-        <div>
-          <label style={label}>Student Phone</label>
-          <input
-            style={input}
-            name="studentPhone"
-            value={student.studentPhone}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div>
-          <label style={label}>District</label>
-          <input
-            style={input}
-            name="district"
-            value={student.district}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div>
-          <label style={label}>Previous School</label>
-          <input
-            style={input}
-            name="previousSchool"
-            value={student.previousSchool}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div>
-          <label style={label}>Orphan Status</label>
-          <select
-            style={input}
-            name="orphanStatus"
-            value={student.orphanStatus}
-            onChange={handleChange}
-          >
-            <option>No</option>
-            <option>Yes</option>
-          </select>
-        </div>
-
-        <div>
-          <label style={label}>Parent Password</label>
-          <input
-            style={input}
-            name="parentPassword"
-            value={student.parentPassword}
-            onChange={handleChange}
-          />
-        </div>
-
-        <div>
-          <label style={label}>Student Photo</label>
-          <input type="file" accept="image/*" onChange={handleFileChange} />
-        </div>
+        <button
+          onClick={saveStudent}
+          disabled={saving}
+          style={{
+            ...btnPrimary,
+            opacity: saving ? 0.7 : 1,
+            cursor: saving ? "not-allowed" : "pointer",
+          }}
+        >
+          {saving ? (
+            <>
+              <Loader2 size={18} style={{ animation: "spin 1s linear infinite" }} />
+              Kaydinaya...
+            </>
+          ) : (
+            <>
+              <UserPlus size={18} />
+              Complete Registration
+            </>
+          )}
+        </button>
       </div>
 
-      <br />
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        input::placeholder {
+          color: #6b6890;
+        }
+        select option {
+          background: #1e1a4a;
+          color: #ffffff;
+        }
+      `}</style>
+    </div>
+  );
+}
 
-      <button onClick={saveStudent} style={btnPrimary}>
-        🚀 Complete Registration
-      </button>
+function Field({ icon: Icon, label, children }) {
+  return (
+    <div>
+      <label
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          fontWeight: 600,
+          marginBottom: 10,
+          color: "#fff",
+          fontSize: 15,
+        }}
+      >
+        <Icon size={17} color="#8b6cf5" />
+        {label}
+      </label>
+      {children}
     </div>
   );
 }
@@ -236,28 +370,34 @@ export default function AddStudent() {
 const grid = {
   display: "grid",
   gridTemplateColumns: "1fr 1fr",
-  gap: "16px 20px",
+  gap: "24px 32px",
+  marginBottom: 34,
 };
-const label = {
-  display: "block",
-  fontWeight: "bold",
-  marginBottom: 6,
-};
+
 const input = {
   width: "100%",
-  padding: "10px 12px",
+  padding: "14px 16px",
   boxSizing: "border-box",
-  border: "1px solid #ccc",
-  borderRadius: 6,
+  border: "1.5px solid rgba(139,108,245,0.35)",
+  borderRadius: 12,
+  fontSize: 14.5,
+  color: "#e5e3f7",
+  outline: "none",
+  background: "rgba(255,255,255,0.02)",
+  transition: "border-color .2s",
 };
+
 const btnPrimary = {
-  width: "100%",
-  background: "#1f9d55",
-  color: "white",
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  gap: 10,
+  background: "linear-gradient(90deg,#6d5df0,#8b6cf5)",
+  color: "#fff",
   border: "none",
-  borderRadius: 6,
-  padding: "14px 18px",
-  cursor: "pointer",
-  fontWeight: "bold",
-  fontSize: 16,
+  borderRadius: 14,
+  padding: "16px 28px",
+  fontWeight: 700,
+  fontSize: 15,
+  boxShadow: "0 10px 24px rgba(109,93,240,0.35)",
 };

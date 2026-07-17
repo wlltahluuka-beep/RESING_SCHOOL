@@ -53,6 +53,34 @@ export default function Home() {
               <span>➜</span>
             </Link>
 
+            <Link className="box cashier" to="/cashier-login">
+
+<div className="icon">
+
+💰
+
+</div>
+
+<div>
+
+<h2>CASHIER</h2>
+
+<p>
+
+School Payments
+
+</p>
+
+</div>
+
+<span>
+
+➜
+
+</span>
+
+</Link>
+
             <Link className="box parent" to="/parent-login">
               <div className="icon">👨‍👩‍👧</div>
 

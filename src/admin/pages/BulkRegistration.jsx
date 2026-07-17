@@ -9,6 +9,15 @@ import {
   updateDoc,
   arrayUnion,
 } from "firebase/firestore";
+import {
+  Users,
+  Plus,
+  Save,
+  X,
+  Upload,
+  CheckCircle2,
+  ArrowRight,
+} from "lucide-react";
 
 const classOptions = ["1", "2", "3", "4", "5", "6", "7", "8", "F1", "F2", "F3", "F4"];
 
@@ -31,6 +40,7 @@ export default function BulkRegistration() {
   const [students, setStudents] = useState([emptyRow()]);
   const [showPopup, setShowPopup] = useState(false);
   const [savedStudents, setSavedStudents] = useState([]);
+  const [saving, setSaving] = useState(false);
 
   const addRow = () => {
     setStudents([...students, emptyRow()]);
@@ -96,6 +106,7 @@ export default function BulkRegistration() {
 
   const saveStudents = async () => {
     try {
+      setSaving(true);
       const saved = [];
 
       // Load teachers once, isticmaal isla liiska dhammaan safafka
@@ -153,258 +164,405 @@ export default function BulkRegistration() {
     } catch (err) {
       console.log(err);
       alert(err.message);
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <div style={{ padding: 30, fontFamily: "sans-serif" }}>
-      <h1 style={{ color: "#1f7a3f" }}>Bulk Student Registration</h1>
+    <div style={{ background: "#0b0a1c", minHeight: "100vh", padding: "30px" }}>
+      <div
+        style={{
+          background: "linear-gradient(160deg,#151233,#181341)",
+          borderRadius: 24,
+          padding: "36px 40px",
+          border: "1px solid rgba(139,108,245,0.25)",
+        }}
+      >
+        {/* ---- Header ---- */}
+        <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 30 }}>
+          <div
+            style={{
+              width: 52,
+              height: 52,
+              minWidth: 52,
+              borderRadius: 14,
+              background: "linear-gradient(135deg,#6d5df0,#8b6cf5)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 8px 20px rgba(109,93,240,0.3)",
+            }}
+          >
+            <Users color="#fff" size={26} />
+          </div>
+          <div>
+            <h1 style={{ margin: 0, fontSize: 24, fontWeight: 800, color: "#fff" }}>
+              Bulk Student Registration
+            </h1>
+            <p style={{ margin: "4px 0 0", color: "#8b87ad", fontSize: 13.5 }}>
+              Ku dar dhowr arday hal mar, si degdeg ah oo sahlan.
+            </p>
+          </div>
+        </div>
 
-      <div style={{ overflowX: "auto" }}>
-        <table
-          style={{
-            width: "100%",
-            borderCollapse: "collapse",
-            marginTop: 20,
-            minWidth: 1300,
-          }}
-        >
-          <thead>
-            <tr style={{ textAlign: "left" }}>
-              <th style={th}>Full Name</th>
-              <th style={th}>Class Name</th>
-              <th style={th}>Monthly Fee ($)</th>
-              <th style={th}>Parent Phone</th>
-              <th style={th}>Student Phone</th>
-              <th style={th}>District</th>
-              <th style={th}>Previous School</th>
-              <th style={th}>Orphan Status</th>
-              <th style={th}>Parent Password</th>
-              <th style={th}>Student Photo</th>
-              <th style={th}></th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {students.map((student, index) => (
-              <tr key={index}>
-                <td style={td}>
-                  <input
-                    style={input}
-                    data-row={index}
-                    data-field="fullName"
-                    value={student.fullName}
-                    onChange={(e) =>
-                      handleChange(index, "fullName", e.target.value)
-                    }
-                  />
-                </td>
-
-                <td style={td}>
-                  <select
-                    style={input}
-                    value={student.className}
-                    onChange={(e) =>
-                      handleChange(index, "className", e.target.value)
-                    }
-                  >
-                    <option value="">Select Class</option>
-                    {classOptions.map((c) => (
-                      <option key={c} value={c}>
-                        {c}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-
-                <td style={td}>
-                  <input
-                    style={input}
-                    type="number"
-                    value={student.monthlyFee}
-                    onChange={(e) =>
-                      handleChange(index, "monthlyFee", e.target.value)
-                    }
-                  />
-                </td>
-
-                <td style={td}>
-                  <input
-                    style={input}
-                    value={student.parentPhone}
-                    onChange={(e) =>
-                      handleChange(index, "parentPhone", e.target.value)
-                    }
-                  />
-                </td>
-
-                <td style={td}>
-                  <input
-                    style={input}
-                    value={student.studentPhone}
-                    onChange={(e) =>
-                      handleChange(index, "studentPhone", e.target.value)
-                    }
-                  />
-                </td>
-
-                <td style={td}>
-                  <input
-                    style={input}
-                    value={student.district}
-                    onChange={(e) =>
-                      handleChange(index, "district", e.target.value)
-                    }
-                  />
-                </td>
-
-                <td style={td}>
-                  <input
-                    style={input}
-                    value={student.previousSchool}
-                    onChange={(e) =>
-                      handleChange(index, "previousSchool", e.target.value)
-                    }
-                  />
-                </td>
-
-                <td style={td}>
-                  <select
-                    style={input}
-                    value={student.orphanStatus}
-                    onChange={(e) =>
-                      handleChange(index, "orphanStatus", e.target.value)
-                    }
-                  >
-                    <option>No</option>
-                    <option>Yes</option>
-                  </select>
-                </td>
-
-                <td style={td}>
-                  <input
-                    style={input}
-                    value={student.parentPassword}
-                    onChange={(e) =>
-                      handleChange(index, "parentPassword", e.target.value)
-                    }
-                    onKeyDown={(e) => handleLastFieldKeyDown(index, e)}
-                  />
-                </td>
-
-                <td style={td}>
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) =>
-                      handleFileChange(index, e.target.files[0])
-                    }
-                  />
-                </td>
-
-                <td style={td}>
-                  <button
-                    onClick={() => removeRow(index)}
-                    style={{
-                      background: "#e74c3c",
-                      color: "white",
-                      border: "none",
-                      borderRadius: 4,
-                      padding: "6px 10px",
-                      cursor: "pointer",
-                    }}
-                  >
-                    ✕
-                  </button>
-                </td>
+        {/* ---- Table ---- */}
+        <div style={{ overflowX: "auto", borderRadius: 16, border: "1px solid rgba(139,108,245,0.2)" }}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              minWidth: 1350,
+            }}
+          >
+            <thead>
+              <tr style={{ textAlign: "left", background: "rgba(139,108,245,0.08)" }}>
+                <th style={th}>Full Name</th>
+                <th style={th}>Class Name</th>
+                <th style={th}>Monthly Fee ($)</th>
+                <th style={th}>Parent Phone</th>
+                <th style={th}>Student Phone</th>
+                <th style={th}>District</th>
+                <th style={th}>Previous School</th>
+                <th style={th}>Orphan Status</th>
+                <th style={th}>Parent Password</th>
+                <th style={th}>Student Photo</th>
+                <th style={{ ...th, textAlign: "center" }}></th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+
+            <tbody>
+              {students.map((student, index) => (
+                <tr key={index}>
+                  <td style={td}>
+                    <input
+                      style={input}
+                      data-row={index}
+                      data-field="fullName"
+                      placeholder="Magaca oo dhan"
+                      value={student.fullName}
+                      onChange={(e) =>
+                        handleChange(index, "fullName", e.target.value)
+                      }
+                    />
+                  </td>
+
+                  <td style={td}>
+                    <select
+                      style={input}
+                      value={student.className}
+                      onChange={(e) =>
+                        handleChange(index, "className", e.target.value)
+                      }
+                    >
+                      <option value="">Select Class</option>
+                      {classOptions.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+
+                  <td style={td}>
+                    <input
+                      style={input}
+                      type="number"
+                      placeholder="0.00"
+                      value={student.monthlyFee}
+                      onChange={(e) =>
+                        handleChange(index, "monthlyFee", e.target.value)
+                      }
+                    />
+                  </td>
+
+                  <td style={td}>
+                    <input
+                      style={input}
+                      placeholder="61xxxxxxx"
+                      value={student.parentPhone}
+                      onChange={(e) =>
+                        handleChange(index, "parentPhone", e.target.value)
+                      }
+                    />
+                  </td>
+
+                  <td style={td}>
+                    <input
+                      style={input}
+                      placeholder="61xxxxxxx"
+                      value={student.studentPhone}
+                      onChange={(e) =>
+                        handleChange(index, "studentPhone", e.target.value)
+                      }
+                    />
+                  </td>
+
+                  <td style={td}>
+                    <input
+                      style={input}
+                      placeholder="Degmada"
+                      value={student.district}
+                      onChange={(e) =>
+                        handleChange(index, "district", e.target.value)
+                      }
+                    />
+                  </td>
+
+                  <td style={td}>
+                    <input
+                      style={input}
+                      placeholder="Dugsigii hore"
+                      value={student.previousSchool}
+                      onChange={(e) =>
+                        handleChange(index, "previousSchool", e.target.value)
+                      }
+                    />
+                  </td>
+
+                  <td style={td}>
+                    <select
+                      style={input}
+                      value={student.orphanStatus}
+                      onChange={(e) =>
+                        handleChange(index, "orphanStatus", e.target.value)
+                      }
+                    >
+                      <option>No</option>
+                      <option>Yes</option>
+                    </select>
+                  </td>
+
+                  <td style={td}>
+                    <input
+                      style={input}
+                      placeholder="••••••••"
+                      value={student.parentPassword}
+                      onChange={(e) =>
+                        handleChange(index, "parentPassword", e.target.value)
+                      }
+                      onKeyDown={(e) => handleLastFieldKeyDown(index, e)}
+                    />
+                  </td>
+
+                  <td style={td}>
+                    <label
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 6,
+                        color: "#8b87ad",
+                        fontSize: 12.5,
+                        cursor: "pointer",
+                        border: "1px dashed rgba(139,108,245,0.4)",
+                        borderRadius: 8,
+                        padding: "8px 10px",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      <Upload size={14} color="#8b6cf5" />
+                      {student.studentPhoto ? student.studentPhoto.name.slice(0, 10) + "…" : "Upload"}
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={(e) =>
+                          handleFileChange(index, e.target.files[0])
+                        }
+                        style={{ display: "none" }}
+                      />
+                    </label>
+                  </td>
+
+                  <td style={{ ...td, textAlign: "center" }}>
+                    <button
+                      onClick={() => removeRow(index)}
+                      style={{
+                        background: "rgba(239,68,68,0.15)",
+                        color: "#f87171",
+                        border: "1px solid rgba(239,68,68,0.3)",
+                        borderRadius: 8,
+                        width: 32,
+                        height: 32,
+                        display: "inline-flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        cursor: "pointer",
+                      }}
+                    >
+                      <X size={15} />
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* ---- Buttons-ka hoose ---- */}
+        <div style={{ display: "flex", gap: 14, marginTop: 24 }}>
+          <button onClick={addRow} style={btnSecondary}>
+            <Plus size={17} />
+            Add Row
+          </button>
+
+          <button
+            onClick={saveStudents}
+            disabled={saving}
+            style={{
+              ...btnPrimary,
+              opacity: saving ? 0.7 : 1,
+              cursor: saving ? "not-allowed" : "pointer",
+            }}
+          >
+            <Save size={17} />
+            {saving ? "Kaydinaya..." : "Save All"}
+          </button>
+        </div>
       </div>
 
-      <br />
-
-      <button onClick={addRow} style={btnSecondary}>
-        + Add Row
-      </button>
-
-      <button onClick={saveStudents} style={btnPrimary}>
-        Save All
-      </button>
-
+      {/* ---- Popup-ka guusha ---- */}
       {showPopup && (
         <div style={popupOverlay}>
           <div style={popupCard}>
-            <h2 style={{ color: "#1f7a3f", marginTop: 0 }}>
-              Students Saved Successfully
-            </h2>
-
-            {savedStudents.map((student) => (
-              <div key={student.studentId}>
-                <b>{student.fullName}</b>
-                <br />
-                Student ID : {student.studentId}
-                <hr />
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 20 }}>
+              <div
+                style={{
+                  width: 46,
+                  height: 46,
+                  minWidth: 46,
+                  borderRadius: "50%",
+                  background: "rgba(34,197,94,0.15)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <CheckCircle2 color="#4ade80" size={24} />
               </div>
-            ))}
+              <h2 style={{ color: "#fff", margin: 0, fontSize: 19 }}>
+                Students Saved Successfully
+              </h2>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {savedStudents.map((student) => (
+                <div
+                  key={student.studentId}
+                  style={{
+                    background: "rgba(255,255,255,0.03)",
+                    borderRadius: 10,
+                    padding: "10px 14px",
+                    border: "1px solid rgba(139,108,245,0.15)",
+                  }}
+                >
+                  <div style={{ color: "#fff", fontWeight: 600, fontSize: 14 }}>
+                    {student.fullName || "—"}
+                  </div>
+                  <div style={{ color: "#8b87ad", fontSize: 12.5, marginTop: 2 }}>
+                    Student ID: {student.studentId}
+                  </div>
+                </div>
+              ))}
+            </div>
 
             <button
               onClick={() => navigate("/admin/students")}
-              style={btnPrimary}
+              style={{ ...btnPrimary, width: "100%", marginTop: 22, justifyContent: "center" }}
             >
               Go To Students
+              <ArrowRight size={17} />
             </button>
           </div>
         </div>
       )}
+
+      <style>{`
+        input::placeholder {
+          color: #6b6890;
+        }
+        select option {
+          background: #1e1a4a;
+          color: #ffffff;
+        }
+      `}</style>
     </div>
   );
 }
 
-const th = { padding: "8px 6px", borderBottom: "2px solid #ddd" };
-const td = { padding: "6px", borderBottom: "1px solid #eee" };
+const th = {
+  padding: "14px 12px",
+  color: "#a9a6c4",
+  fontSize: 12.5,
+  fontWeight: 700,
+  whiteSpace: "nowrap",
+  borderBottom: "1px solid rgba(139,108,245,0.2)",
+};
+
+const td = {
+  padding: "10px 12px",
+  borderBottom: "1px solid rgba(139,108,245,0.1)",
+};
+
 const input = {
   width: "100%",
-  padding: "6px 8px",
+  padding: "10px 12px",
   boxSizing: "border-box",
-  border: "1px solid #ccc",
-  borderRadius: 4,
+  border: "1.5px solid rgba(139,108,245,0.3)",
+  borderRadius: 10,
+  fontSize: 13.5,
+  color: "#e5e3f7",
+  background: "rgba(255,255,255,0.02)",
+  outline: "none",
+  minWidth: 130,
 };
+
 const btnPrimary = {
-  marginLeft: 10,
-  background: "#1f9d55",
-  color: "white",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 9,
+  background: "linear-gradient(90deg,#6d5df0,#8b6cf5)",
+  color: "#fff",
   border: "none",
-  borderRadius: 6,
-  padding: "10px 18px",
-  cursor: "pointer",
-  fontWeight: "bold",
+  borderRadius: 12,
+  padding: "13px 24px",
+  fontWeight: 700,
+  fontSize: 14.5,
+  boxShadow: "0 10px 24px rgba(109,93,240,0.35)",
 };
+
 const btnSecondary = {
-  background: "#eee",
-  border: "1px solid #ccc",
-  borderRadius: 6,
-  padding: "10px 18px",
+  display: "inline-flex",
+  alignItems: "center",
+  gap: 9,
+  background: "rgba(255,255,255,0.04)",
+  color: "#fff",
+  border: "1.5px solid rgba(139,108,245,0.35)",
+  borderRadius: 12,
+  padding: "13px 24px",
+  fontWeight: 700,
+  fontSize: 14.5,
   cursor: "pointer",
 };
+
 const popupOverlay = {
   position: "fixed",
   top: 0,
   left: 0,
   right: 0,
   bottom: 0,
-  background: "rgba(0,0,0,0.5)",
+  background: "rgba(0,0,0,0.6)",
   display: "flex",
   alignItems: "center",
   justifyContent: "center",
   zIndex: 1000,
 };
+
 const popupCard = {
-  background: "white",
-  borderRadius: 8,
+  background: "linear-gradient(160deg,#151233,#181341)",
+  border: "1px solid rgba(139,108,245,0.3)",
+  borderRadius: 18,
   padding: 30,
-  minWidth: 350,
+  minWidth: 380,
   maxWidth: 500,
   maxHeight: "80vh",
   overflowY: "auto",
