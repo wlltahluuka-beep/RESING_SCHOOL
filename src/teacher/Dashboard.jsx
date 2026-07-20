@@ -19,6 +19,46 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { useMessages } from "../context/MessagesContext"; // Hubi path-kan
 
+function DashboardStyles() {
+  return (
+    <style>{`
+      .td-layout { display: flex; min-height: 100vh; background: #05070D; }
+      .td-content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+      .td-body { padding: 0 20px 30px; }
+      .td-stat-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin-bottom: 24px;
+      }
+      .td-classes-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 16px;
+      }
+      .td-quick-actions { display: flex; gap: 16px; flex-wrap: wrap; }
+      .td-attendance-row { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
+
+      @media (max-width: 900px) {
+        .td-body { padding: 0 14px 90px; }
+        .td-stat-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .td-panel { padding: 16px !important; border-radius: 16px !important; }
+        .td-classes-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+        .td-stat-value { font-size: 24px !important; }
+        .td-quick-actions button { flex: 1 1 45%; justify-content: center; }
+        .td-attendance-row { gap: 14px; }
+        .td-attendance-row button { margin-left: 0 !important; width: 100%; text-align: left; }
+      }
+
+      @media (max-width: 480px) {
+        .td-stat-grid { grid-template-columns: 1fr 1fr; }
+        .td-classes-grid { grid-template-columns: 1fr; }
+        .td-quick-actions button { flex: 1 1 100%; }
+      }
+    `}</style>
+  );
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const { allMessages, markAsRead } = useMessages();
@@ -124,30 +164,25 @@ export default function Dashboard() {
   const recentMessages = allMessages.slice(0, 5);
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#05070D" }}>
+    <div className="td-layout">
+      <DashboardStyles />
       <Sidebar teacherName={teacherName} />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <div className="td-content">
         <Topbar teacherName={teacherName} />
 
         {loading ? (
           <p style={{ padding: 30, color: "#94A3B8" }}>Loading dashboard...</p>
         ) : (
-          <div style={{ padding: "0 20px 30px" }}>
+          <div className="td-body">
             {/* Stat Cards */}
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(4, 1fr)",
-                gap: 20,
-                marginBottom: 24,
-              }}
-            >
+            <div className="td-stat-grid">
               {statCards.map((c) => {
                 const Icon = c.icon;
                 return (
                   <div
                     key={c.label}
+                    className="td-panel"
                     style={{
                       background: "#0B1120",
                       borderRadius: 20,
@@ -169,7 +204,7 @@ export default function Dashboard() {
                     >
                       <Icon size={22} color={c.ring} />
                     </div>
-                    <h3 style={{ margin: 0, fontSize: 30, color: "#fff" }}>
+                    <h3 className="td-stat-value" style={{ margin: 0, fontSize: 30, color: "#fff" }}>
                       {c.value}
                     </h3>
                     <p style={{ margin: "4px 0 0", color: "#94A3B8" }}>
@@ -182,6 +217,7 @@ export default function Dashboard() {
 
             {/* Fariimaha ugu dambeeyay */}
             <div
+              className="td-panel"
               style={{
                 background: "#0B1120",
                 borderRadius: 20,
@@ -196,6 +232,8 @@ export default function Dashboard() {
                   justifyContent: "space-between",
                   alignItems: "center",
                   marginBottom: 16,
+                  flexWrap: "wrap",
+                  gap: 8,
                 }}
               >
                 <h3 style={{ margin: 0, color: "#fff" }}>Fariimaha</h3>
@@ -241,12 +279,12 @@ export default function Dashboard() {
                       }}
                     >
                       {m.read ? (
-                        <MailOpen size={16} color="#94A3B8" style={{ marginTop: 2 }} />
+                        <MailOpen size={16} color="#94A3B8" style={{ marginTop: 2, flexShrink: 0 }} />
                       ) : (
-                        <Mail size={16} color="#8B5CF6" style={{ marginTop: 2 }} />
+                        <Mail size={16} color="#8B5CF6" style={{ marginTop: 2, flexShrink: 0 }} />
                       )}
                       <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
+                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8, flexWrap: "wrap" }}>
                           <span style={{ color: "#fff", fontWeight: m.read ? 500 : 700, fontSize: 14 }}>
                             {m.subject || "(Cinwaan la'aan)"}
                           </span>
@@ -266,6 +304,7 @@ export default function Dashboard() {
 
             {/* My Classes */}
             <div
+              className="td-panel"
               style={{
                 background: "#0B1120",
                 borderRadius: 20,
@@ -279,13 +318,7 @@ export default function Dashboard() {
               {classes.length === 0 ? (
                 <p style={{ color: "#94A3B8" }}>No classes assigned yet.</p>
               ) : (
-                <div
-                  style={{
-                    display: "grid",
-                    gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))",
-                    gap: 16,
-                  }}
-                >
+                <div className="td-classes-grid">
                   {classes.map((c) => (
                     <div
                       key={c.id}
@@ -313,6 +346,7 @@ export default function Dashboard() {
 
             {/* Today's Attendance */}
             <div
+              className="td-panel"
               style={{
                 background: "#0B1120",
                 borderRadius: 20,
@@ -322,7 +356,7 @@ export default function Dashboard() {
               }}
             >
               <h3 style={{ marginTop: 0, color: "#fff" }}>Today's Attendance</h3>
-              <div style={{ display: "flex", alignItems: "center", gap: 24 }}>
+              <div className="td-attendance-row">
                 <span style={{ color: "#22C55E", fontWeight: "bold" }}>
                   Present: {presentToday}
                 </span>
@@ -348,6 +382,7 @@ export default function Dashboard() {
 
             {/* Quick Actions */}
             <div
+              className="td-panel"
               style={{
                 background: "#0B1120",
                 borderRadius: 20,
@@ -356,7 +391,7 @@ export default function Dashboard() {
               }}
             >
               <h3 style={{ marginTop: 0, color: "#fff" }}>Quick Actions</h3>
-              <div style={{ display: "flex", gap: 16, flexWrap: "wrap" }}>
+              <div className="td-quick-actions">
                 {quickActions.map((a) => {
                   const Icon = a.icon;
                   return (

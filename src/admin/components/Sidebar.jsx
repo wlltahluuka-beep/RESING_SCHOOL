@@ -9,17 +9,21 @@ import {
   MessageCircle,
   BarChart3,
   CalendarCheck,
+  ClipboardList,
+  HelpCircle,
 } from "lucide-react";
 
 import logo from "../assets/logo.png";
 
 const menus = [
   { name: "Dashboard", icon: LayoutDashboard, path: "/admin/dashboard" },
-  { name: "Add Student", icon: UserPlus, path: "/admin/add-student" },
-  { name: "Add Teacher", icon: UserPlus, path: "/admin/add-teacher" },
-  { name: "Add Cashier", icon: Wallet, path: "/admin/add-cashier" },
-  { name: "Class", icon: School, path: "/admin/classes" },
+  { name: "Students", icon: GraduationCap, path: "/admin/students" },
+  { name: "Teachers", icon: Users, path: "/admin/teachers" },
   { name: "Parents", icon: Users, path: "/admin/parents" },
+  { name: "Classes", icon: School, path: "/admin/classes" },
+  { name: "Attendance", icon: CalendarCheck, path: "/admin/attendance" },
+  { name: "Exams", icon: ClipboardList, path: "/admin/exams" },
+  { name: "Add Cashier", icon: Wallet, path: "/admin/add-cashier" },
   { name: "Messages", icon: MessageCircle, path: "/admin/messages" },
   { name: "Reports", icon: BarChart3, path: "/admin/reports" },
 ];
@@ -35,7 +39,7 @@ export default function Sidebar() {
         display: "flex",
         flexDirection: "column",
         justifyContent: "space-between",
-        borderRight: "1px solid rgba(17,24,39,0.06)",
+        borderRight: "1px solid rgba(15,61,46,0.08)",
       }}
     >
       <div>
@@ -53,7 +57,8 @@ export default function Sidebar() {
               width: 46,
               height: 46,
               borderRadius: 12,
-              background: "linear-gradient(135deg,#6D5DF0,#8B5CF6)",
+              background: "#ffffff",
+              border: "1px solid rgba(15,61,46,0.12)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -65,8 +70,8 @@ export default function Sidebar() {
               src={logo}
               alt=""
               style={{
-                width: "72%",
-                height: "72%",
+                width: "80%",
+                height: "80%",
                 objectFit: "contain",
               }}
             />
@@ -76,22 +81,23 @@ export default function Sidebar() {
             <h2
               style={{
                 margin: 0,
-                fontSize: 16.5,
+                fontSize: 16,
                 fontWeight: 800,
-                color: "#111827",
+                color: "#14532d",
                 lineHeight: 1.2,
+                letterSpacing: "0.01em",
               }}
             >
-              Rising Star School
+              RESING SCHOOL
             </h2>
-            <small style={{ color: "#9CA3AF", fontSize: 12 }}>
-              Management System
+            <small style={{ color: "#9CA3AF", fontSize: 11.5 }}>
+              School Management ERP System
             </small>
           </div>
         </div>
 
         {/* Menu */}
-        <div style={{ padding: "8px 18px" }}>
+        <div style={{ padding: "8px 18px", overflowY: "auto" }}>
           {menus.map((item) => {
             const Icon = item.icon;
 
@@ -103,23 +109,23 @@ export default function Sidebar() {
                   display: "flex",
                   alignItems: "center",
                   gap: 14,
-                  padding: "13px 18px",
-                  marginBottom: 6,
+                  padding: "12px 18px",
+                  marginBottom: 4,
                   textDecoration: "none",
-                  color: isActive ? "#fff" : "#6B7280",
-                  borderRadius: 14,
+                  color: isActive ? "#fff" : "#4b5563",
+                  borderRadius: 12,
                   transition: "all .2s ease",
                   fontWeight: isActive ? 700 : 500,
-                  fontSize: 14.5,
+                  fontSize: 14,
                   background: isActive
-                    ? "linear-gradient(90deg,#6D5DF0,#8B5CF6)"
+                    ? "linear-gradient(90deg,#16a34a,#15803d)"
                     : "transparent",
                   boxShadow: isActive
-                    ? "0 8px 16px rgba(109,93,240,0.28)"
+                    ? "0 8px 16px rgba(22,163,74,0.25)"
                     : "none",
                 })}
               >
-                <Icon size={19} />
+                <Icon size={18} />
                 <span>{item.name}</span>
               </NavLink>
             );
@@ -127,53 +133,40 @@ export default function Sidebar() {
         </div>
       </div>
 
-      {/* Academic year card */}
+      {/* Help card */}
       <div style={{ padding: 20 }}>
         <div
           style={{
-            background: "linear-gradient(145deg,#F5F3FF,#EDE9FE)",
-            border: "1px solid rgba(109,93,240,0.15)",
+            background: "linear-gradient(145deg,#EFFBF3,#E6F5EC)",
+            border: "1px solid rgba(22,163,74,0.15)",
             borderRadius: 18,
-            padding: "22px 18px",
+            padding: "20px 18px",
             textAlign: "center",
           }}
         >
-          <div style={{ fontSize: 36, marginBottom: 8 }}>🎓</div>
-          <div style={{ fontWeight: 700, fontSize: 14, color: "#4C1D95" }}>
-            Academic Year
+          <HelpCircle size={30} color="#16a34a" style={{ marginBottom: 8 }} />
+          <div style={{ fontWeight: 700, fontSize: 13.5, color: "#14532d" }}>
+            Need Help?
           </div>
-          <div
-            style={{
-              fontWeight: 800,
-              fontSize: 17,
-              color: "#111827",
-              marginTop: 2,
-            }}
-          >
-            2025 - 2026
+          <div style={{ fontSize: 12, color: "#4b5563", marginTop: 2 }}>
+            We're here to help you
           </div>
-
-          <div
+          <button
             style={{
               marginTop: 12,
-              height: 6,
-              borderRadius: 6,
-              background: "rgba(109,93,240,0.15)",
-              overflow: "hidden",
+              width: "100%",
+              padding: "9px 0",
+              borderRadius: 10,
+              border: "none",
+              background: "#16a34a",
+              color: "#fff",
+              fontWeight: 700,
+              fontSize: 12.5,
+              cursor: "pointer",
             }}
           >
-            <div
-              style={{
-                width: "60%",
-                height: "100%",
-                background: "linear-gradient(90deg,#6D5DF0,#8B5CF6)",
-                borderRadius: 6,
-              }}
-            />
-          </div>
-          <div style={{ marginTop: 6, fontSize: 12, color: "#7C3AED", fontWeight: 600 }}>
-            60% Completed
-          </div>
+            Contact Support
+          </button>
         </div>
       </div>
     </aside>

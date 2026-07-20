@@ -54,6 +54,9 @@ export default function Dashboard() {
   const [cashiersCount, setCashiersCount] = useState(0);
   const [classBreakdown, setClassBreakdown] = useState([]);
   const [feeStats, setFeeStats] = useState({ total: 0, collected: 0, pending: 0 });
+  const [teachersList, setTeachersList] = useState([]);
+  const [examsByClass, setExamsByClass] = useState([]);
+  const [resultsSummary, setResultsSummary] = useState([]);
   const [growth, setGrowth] = useState({
     students: null,
     teachers: null,
@@ -141,6 +144,60 @@ export default function Dashboard() {
         collected,
         pending: Math.max(expectedTotal - collected, 0),
       });
+
+      // Full teachers list (for the Teachers table on the dashboard)
+      setTeachersList(
+        teachersList.map((t) => ({
+          id: t.id,
+          fullName: t.fullName || t.name || t.id,
+          subject: t.subject || "—",
+          username: t.username || t.id,
+        }))
+      );
+
+      // Exams grouped by class
+      const examsSnap = await getDocs(collection(db, "exams"));
+      const examsList = examsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const examsByClassMap = {};
+      examsList.forEach((e) => {
+        const cls = e.className || e.classId || "Unassigned";
+        if (!examsByClassMap[cls]) examsByClassMap[cls] = [];
+        examsByClassMap[cls].push(e);
+      });
+      const examsByClassArr = Object.entries(examsByClassMap)
+        .map(([className, list]) => ({ className, exams: list }))
+        .sort((a, b) => a.className.localeCompare(b.className, undefined, { numeric: true }));
+      setExamsByClass(examsByClassArr);
+
+      // Results — combine all marks per student into a single row per
+      // student with a computed average (sum of marks / sum of maxMarks),
+      // like a spreadsheet summary row.
+      const resultsSnap = await getDocs(collection(db, "results"));
+      const resultsList = resultsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const byStudent = {};
+      resultsList.forEach((r) => {
+        const key = r.studentId || r.studentName || r.id;
+        if (!byStudent[key]) {
+          byStudent[key] = {
+            studentId: r.studentId || "",
+            studentName: r.studentName || "Unknown",
+            className: r.className || "",
+            subjects: [],
+            totalMarks: 0,
+            totalMax: 0,
+          };
+        }
+        const marks = Number(r.marks) || 0;
+        const maxMarks = Number(r.maxMarks) || 0;
+        byStudent[key].subjects.push({ subject: r.subject || "—", marks, maxMarks });
+        byStudent[key].totalMarks += marks;
+        byStudent[key].totalMax += maxMarks;
+      });
+      const resultsSummary = Object.values(byStudent).map((s) => ({
+        ...s,
+        average: s.totalMax > 0 ? Math.round((s.totalMarks / s.totalMax) * 100) : 0,
+      }));
+      setResultsSummary(resultsSummary);
     } catch (error) {
       console.error("Khalad ayaa dhacay markii xogta Dashboard laga soo qaadanayay:", error);
     } finally {
@@ -206,21 +263,24 @@ export default function Dashboard() {
         <div style={{ padding: "26px 30px" }}>
           <div
             style={{
+              background: "linear-gradient(120deg,#0f3d2e,#166534 60%,#22a05f)",
+              borderRadius: 20,
+              padding: "28px 30px",
+              marginBottom: 24,
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              marginBottom: 22,
               flexWrap: "wrap",
-              gap: 10,
+              gap: 16,
+              color: "#fff",
             }}
           >
             <div>
-              <h1 style={{ margin: 0, fontSize: 20, color: "#111827", fontWeight: 700 }}>
-                Guudmarka Iskuulka
+              <p style={{ margin: "0 0 4px", fontSize: 13.5, opacity: 0.85 }}>Welcome back,</p>
+              <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800 }}>
+                Guudmarka Iskuulka 🏫
               </h1>
-              <p style={{ margin: "4px 0 0", color: "#9CA3AF", fontSize: 13.5 }}>
-                {today}
-              </p>
+              <p style={{ margin: "6px 0 0", fontSize: 13.5, opacity: 0.85 }}>{today}</p>
             </div>
 
             <button
@@ -231,13 +291,12 @@ export default function Dashboard() {
                 gap: 8,
                 padding: "12px 20px",
                 borderRadius: 14,
-                border: "none",
-                background: "linear-gradient(135deg,#6D5DF0,#8B5CF6)",
+                border: "1px solid rgba(255,255,255,0.35)",
+                background: "rgba(255,255,255,0.12)",
                 color: "#fff",
                 fontWeight: 700,
                 fontSize: 13.5,
                 cursor: "pointer",
-                boxShadow: "0 8px 18px rgba(109,93,240,0.3)",
               }}
             >
               <Send size={16} />
@@ -258,7 +317,7 @@ export default function Dashboard() {
               title="Students"
               value={loading ? "..." : students.length}
               icon="🎓"
-              color="#6D5DF0"
+              color="#16a34a"
               percent={growth.students !== null ? `${growth.students}%` : null}
             />
             <DashboardCard
@@ -279,7 +338,7 @@ export default function Dashboard() {
               title="Parents"
               value={loading ? "..." : parentsCount}
               icon="👨‍👩‍👧"
-              color="#22c55e"
+              color="#7c3aed"
               percent={growth.parents !== null ? `${growth.parents}%` : null}
             />
             <DashboardCard
@@ -553,7 +612,7 @@ export default function Dashboard() {
             {/* Banner */}
             <div
               style={{
-                background: "linear-gradient(160deg,#6D5DF0,#8B5CF6)",
+                background: "linear-gradient(160deg,#16a34a,#15803d)",
                 borderRadius: 18,
                 padding: "26px 24px",
                 color: "#fff",
@@ -573,6 +632,185 @@ export default function Dashboard() {
               </div>
               <div style={{ fontSize: 48, textAlign: "center", marginTop: 20 }}>🏫</div>
             </div>
+          </div>
+
+          {/* Teachers list */}
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 18,
+              padding: "22px 24px",
+              boxShadow: "0 4px 18px rgba(17,24,39,0.06)",
+              border: "1px solid rgba(17,24,39,0.05)",
+              marginTop: 20,
+              overflowX: "auto",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <h3 style={{ margin: 0, fontSize: 16, color: "#111827", fontWeight: 700 }}>
+                Teachers ({teachersList.length})
+              </h3>
+            </div>
+
+            {teachersList.length === 0 && !loading && (
+              <p style={{ fontSize: 13, color: "#9CA3AF" }}>Macalimiin lama helin.</p>
+            )}
+
+            {teachersList.length > 0 && (
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 480 }}>
+                <thead>
+                  <tr style={{ color: "#9CA3AF", textAlign: "left" }}>
+                    <th style={{ fontWeight: 600, paddingBottom: 8 }}>Full Name</th>
+                    <th style={{ fontWeight: 600, paddingBottom: 8 }}>Subject</th>
+                    <th style={{ fontWeight: 600, paddingBottom: 8 }}>Username</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {teachersList.map((t) => (
+                    <tr key={t.id} style={{ borderTop: "1px solid #F3F4F6" }}>
+                      <td style={{ padding: "10px 0", color: "#111827", fontWeight: 600 }}>{t.fullName}</td>
+                      <td style={{ color: "#6B7280" }}>{t.subject}</td>
+                      <td style={{ color: "#6B7280" }}>{t.username}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Exams grouped by class */}
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 18,
+              padding: "22px 24px",
+              boxShadow: "0 4px 18px rgba(17,24,39,0.06)",
+              border: "1px solid rgba(17,24,39,0.05)",
+              marginTop: 20,
+            }}
+          >
+            <h3 style={{ margin: "0 0 14px", fontSize: 16, color: "#111827", fontWeight: 700 }}>
+              Exams by Class
+            </h3>
+
+            {examsByClass.length === 0 && !loading && (
+              <p style={{ fontSize: 13, color: "#9CA3AF" }}>Imtixaano lama helin.</p>
+            )}
+
+            {examsByClass.map((group) => (
+              <div key={group.className} style={{ marginBottom: 18 }}>
+                <div
+                  style={{
+                    fontWeight: 700,
+                    fontSize: 13.5,
+                    color: "#16a34a",
+                    marginBottom: 8,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                  }}
+                >
+                  <span
+                    style={{
+                      background: "#E6F5EC",
+                      padding: "3px 10px",
+                      borderRadius: 20,
+                      fontSize: 12,
+                    }}
+                  >
+                    Class {group.className}
+                  </span>
+                  <span style={{ color: "#9CA3AF", fontWeight: 500 }}>
+                    {group.exams.length} exam{group.exams.length !== 1 ? "s" : ""}
+                  </span>
+                </div>
+
+                <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
+                  <thead>
+                    <tr style={{ color: "#9CA3AF", textAlign: "left" }}>
+                      <th style={{ fontWeight: 600, paddingBottom: 6 }}>Exam Name</th>
+                      <th style={{ fontWeight: 600, paddingBottom: 6 }}>Subject</th>
+                      <th style={{ fontWeight: 600, paddingBottom: 6 }}>Max Marks</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {group.exams.map((e) => (
+                      <tr key={e.id} style={{ borderTop: "1px solid #F3F4F6" }}>
+                        <td style={{ padding: "8px 0", color: "#111827", fontWeight: 600 }}>
+                          {e.examName || "—"}
+                        </td>
+                        <td style={{ color: "#6B7280" }}>{e.subject || "—"}</td>
+                        <td style={{ color: "#6B7280" }}>{e.maxMarks || "—"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+          </div>
+
+          {/* Results summary — every subject's marks combined per student,
+              like a spreadsheet total/average column */}
+          <div
+            style={{
+              background: "#fff",
+              borderRadius: 18,
+              padding: "22px 24px",
+              boxShadow: "0 4px 18px rgba(17,24,39,0.06)",
+              border: "1px solid rgba(17,24,39,0.05)",
+              marginTop: 20,
+              overflowX: "auto",
+            }}
+          >
+            <h3 style={{ margin: "0 0 14px", fontSize: 16, color: "#111827", fontWeight: 700 }}>
+              Results Summary
+            </h3>
+
+            {resultsSummary.length === 0 && !loading && (
+              <p style={{ fontSize: 13, color: "#9CA3AF" }}>Natiijooyin lama helin.</p>
+            )}
+
+            {resultsSummary.length > 0 && (
+              <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 560 }}>
+                <thead>
+                  <tr style={{ color: "#9CA3AF", textAlign: "left" }}>
+                    <th style={{ fontWeight: 600, paddingBottom: 8 }}>Student</th>
+                    <th style={{ fontWeight: 600, paddingBottom: 8 }}>Class</th>
+                    <th style={{ fontWeight: 600, paddingBottom: 8 }}>Subjects Taken</th>
+                    <th style={{ fontWeight: 600, paddingBottom: 8 }}>Total Marks</th>
+                    <th style={{ fontWeight: 600, paddingBottom: 8 }}>Average</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {resultsSummary.map((s) => (
+                    <tr key={s.studentId || s.studentName} style={{ borderTop: "1px solid #F3F4F6" }}>
+                      <td style={{ padding: "10px 0", color: "#111827", fontWeight: 600 }}>
+                        {s.studentName}
+                      </td>
+                      <td style={{ color: "#6B7280" }}>{s.className || "—"}</td>
+                      <td style={{ color: "#6B7280" }}>{s.subjects.length}</td>
+                      <td style={{ color: "#6B7280" }}>
+                        {s.totalMarks} / {s.totalMax}
+                      </td>
+                      <td>
+                        <span
+                          style={{
+                            background: s.average >= 50 ? "#DCFCE7" : "#FEE2E2",
+                            color: s.average >= 50 ? "#16A34A" : "#DC2626",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            padding: "3px 10px",
+                            borderRadius: 20,
+                          }}
+                        >
+                          {s.average}%
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
         </div>
       </div>

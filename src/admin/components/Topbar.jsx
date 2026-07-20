@@ -43,7 +43,7 @@ export default function Topbar() {
             width: 48,
             height: 48,
             borderRadius: 14,
-            background: "linear-gradient(135deg,#6D5DF0,#8B5CF6)",
+            background: "linear-gradient(135deg,#16a34a,#15803d)",
             display: "flex",
             justifyContent: "center",
             alignItems: "center",
@@ -125,7 +125,7 @@ export default function Topbar() {
             cursor: "pointer",
           }}
         >
-          <Bell size={19} color="#6D5DF0" />
+          <Bell size={19} color="#16a34a" />
 
           {unreadCount > 0 && (
             <span
@@ -158,7 +158,7 @@ export default function Topbar() {
             width: 50,
             height: 50,
             borderRadius: "50%",
-            border: "2.5px solid #6D5DF0",
+            border: "2.5px solid #16a34a",
             objectFit: "cover",
           }}
         />
