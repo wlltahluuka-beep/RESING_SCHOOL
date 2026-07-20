@@ -45,6 +45,70 @@ function computeMonthGrowth(docsList) {
   return Math.round(((thisMonthCount - lastMonthCount) / lastMonthCount) * 100);
 }
 
+const cardStyle = {
+  background: "#fff",
+  borderRadius: 18,
+  padding: "20px 22px",
+  boxShadow: "0 4px 18px rgba(17,24,39,0.06)",
+  border: "1px solid rgba(17,24,39,0.05)",
+  minWidth: 0,
+};
+
+const cardTitleStyle = {
+  margin: "0 0 14px",
+  fontSize: 15,
+  color: "#111827",
+  fontWeight: 700,
+};
+
+function MiniCalendar() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const today = now.getDate();
+  const monthLabel = now.toLocaleDateString("en-GB", { month: "long", year: "numeric" });
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const cells = [];
+  for (let i = 0; i < firstDay; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  return (
+    <div>
+      <div style={{ fontSize: 12.5, fontWeight: 700, color: "#111827", marginBottom: 10, textAlign: "center" }}>
+        {monthLabel}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4, fontSize: 10.5, color: "#9CA3AF", textAlign: "center", marginBottom: 4 }}>
+        {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
+          <div key={d}>{d}</div>
+        ))}
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 4 }}>
+        {cells.map((d, i) => (
+          <div
+            key={i}
+            style={{
+              height: 24,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 11.5,
+              borderRadius: "50%",
+              color: d === today ? "#fff" : d ? "#374151" : "transparent",
+              background: d === today ? "#16a34a" : "transparent",
+              fontWeight: d === today ? 700 : 400,
+            }}
+          >
+            {d || ""}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   const navigate = useNavigate();
   const [students, setStudents] = useState([]);
@@ -57,6 +121,9 @@ export default function Dashboard() {
   const [teachersList, setTeachersList] = useState([]);
   const [examsByClass, setExamsByClass] = useState([]);
   const [resultsSummary, setResultsSummary] = useState([]);
+  const [attendanceStats, setAttendanceStats] = useState({ present: 0, absent: 0, late: 0, total: 0 });
+  const [upcomingExams, setUpcomingExams] = useState([]);
+  const [notices, setNotices] = useState([]);
   const [growth, setGrowth] = useState({
     students: null,
     teachers: null,
@@ -198,6 +265,41 @@ export default function Dashboard() {
         average: s.totalMax > 0 ? Math.round((s.totalMarks / s.totalMax) * 100) : 0,
       }));
       setResultsSummary(resultsSummary);
+
+      // Attendance overview — today's real attendance records from the
+      // "attendance" collection (status field: Present / Absent / Late).
+      const attendanceSnap = await getDocs(collection(db, "attendance"));
+      const attendanceList = attendanceSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const todaysRecords = attendanceList.filter((a) => {
+        if (a.date) return String(a.date).slice(0, 10) === todayStr;
+        if (a.createdAt?.seconds) {
+          return new Date(a.createdAt.seconds * 1000).toISOString().slice(0, 10) === todayStr;
+        }
+        return false;
+      });
+      const present = todaysRecords.filter((a) => (a.status || "").toLowerCase() === "present").length;
+      const absent = todaysRecords.filter((a) => (a.status || "").toLowerCase() === "absent").length;
+      const late = todaysRecords.filter((a) => (a.status || "").toLowerCase() === "late").length;
+      setAttendanceStats({ present, absent, late, total: todaysRecords.length });
+
+      // Upcoming exams — real exam docs with a date in the future, soonest first
+      const now2 = new Date();
+      const withDates = examsList
+        .filter((e) => e.date)
+        .map((e) => ({ ...e, dateObj: new Date(e.date) }))
+        .filter((e) => !isNaN(e.dateObj.getTime()) && e.dateObj >= now2)
+        .sort((a, b) => a.dateObj - b.dateObj)
+        .slice(0, 4);
+      setUpcomingExams(withDates);
+
+      // Notice board — real broadcast messages from admin, most recent first
+      const messagesSnap = await getDocs(collection(db, "messages"));
+      const messagesList = messagesSnap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        .filter((m) => m.scope === "broadcast" || m.audienceGroup === "broadcast");
+      messagesList.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
+      setNotices(messagesList.slice(0, 4));
     } catch (error) {
       console.error("Khalad ayaa dhacay markii xogta Dashboard laga soo qaadanayay:", error);
     } finally {
@@ -263,44 +365,40 @@ export default function Dashboard() {
         <div style={{ padding: "26px 30px" }}>
           <div
             style={{
-              background: "linear-gradient(120deg,#0f3d2e,#166534 60%,#22a05f)",
+              background: "linear-gradient(120deg,#0f3d2e,#166534 55%,#22a05f)",
               borderRadius: 20,
-              padding: "28px 30px",
+              padding: "32px 34px",
               marginBottom: 24,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              flexWrap: "wrap",
-              gap: 16,
               color: "#fff",
+              position: "relative",
+              overflow: "hidden",
             }}
           >
-            <div>
-              <p style={{ margin: "0 0 4px", fontSize: 13.5, opacity: 0.85 }}>Welcome back,</p>
-              <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800 }}>
-                Guudmarka Iskuulka 🏫
-              </h1>
-              <p style={{ margin: "6px 0 0", fontSize: 13.5, opacity: 0.85 }}>{today}</p>
-            </div>
-
+            <p style={{ margin: "0 0 6px", fontSize: 14, opacity: 0.85 }}>Welcome back,</p>
+            <h1 style={{ margin: 0, fontSize: 30, fontWeight: 800, lineHeight: 1.15 }}>
+              RESING SCHOOL!
+            </h1>
+            <p style={{ margin: "10px 0 20px", fontSize: 14, opacity: 0.9, maxWidth: 420 }}>
+              Smart Management, Better Education, Brighter Future.
+            </p>
             <button
-              onClick={() => navigate("/admin/messages")}
+              onClick={() => navigate("/admin/reports")}
               style={{
-                display: "flex",
+                display: "inline-flex",
                 alignItems: "center",
                 gap: 8,
-                padding: "12px 20px",
+                padding: "12px 22px",
                 borderRadius: 14,
-                border: "1px solid rgba(255,255,255,0.35)",
-                background: "rgba(255,255,255,0.12)",
-                color: "#fff",
+                border: "none",
+                background: "#fff",
+                color: "#166534",
                 fontWeight: 700,
                 fontSize: 13.5,
                 cursor: "pointer",
               }}
             >
-              <Send size={16} />
-              Send Message
+              Explore Dashboard
+              <Send size={15} />
             </button>
           </div>
 
@@ -512,6 +610,186 @@ export default function Dashboard() {
                   </div>
                 ))}
               </div>
+            </div>
+          </div>
+
+          {/* Attendance Overview + Upcoming Exams + Notice Board + Calendar */}
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "1fr 1fr 1fr 1fr",
+              gap: 20,
+              marginBottom: 24,
+            }}
+            className="dash-row-4"
+          >
+            {/* Attendance Overview — real attendance docs for today */}
+            <div style={cardStyle}>
+              <h3 style={cardTitleStyle}>Attendance Overview</h3>
+              {attendanceStats.total === 0 && !loading ? (
+                <p style={{ fontSize: 13, color: "#9CA3AF" }}>
+                  Xogta imaanshaha maanta lama helin.
+                </p>
+              ) : (
+                <>
+                  <div style={{ width: 130, height: 130, margin: "0 auto", position: "relative" }}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie
+                          data={[
+                            { name: "Present", value: attendanceStats.present },
+                            { name: "Absent", value: attendanceStats.absent },
+                            { name: "Late", value: attendanceStats.late },
+                          ]}
+                          innerRadius={45}
+                          outerRadius={62}
+                          paddingAngle={2}
+                          dataKey="value"
+                          startAngle={90}
+                          endAngle={-270}
+                        >
+                          <Cell fill="#16a34a" />
+                          <Cell fill="#ef4444" />
+                          <Cell fill="#f59e0b" />
+                        </Pie>
+                      </PieChart>
+                    </ResponsiveContainer>
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: "50%",
+                        left: "50%",
+                        transform: "translate(-50%,-50%)",
+                        textAlign: "center",
+                      }}
+                    >
+                      <div style={{ fontSize: 20, fontWeight: 800, color: "#111827" }}>
+                        {attendanceStats.total > 0
+                          ? Math.round((attendanceStats.present / attendanceStats.total) * 100)
+                          : 0}
+                        %
+                      </div>
+                      <div style={{ fontSize: 10, color: "#9CA3AF" }}>Present</div>
+                    </div>
+                  </div>
+                  <div style={{ marginTop: 14, fontSize: 12.5 }}>
+                    {[
+                      { label: "Present", value: attendanceStats.present, color: "#16a34a" },
+                      { label: "Absent", value: attendanceStats.absent, color: "#ef4444" },
+                      { label: "Late", value: attendanceStats.late, color: "#f59e0b" },
+                    ].map((row) => (
+                      <div
+                        key={row.label}
+                        style={{ display: "flex", justifyContent: "space-between", marginBottom: 6 }}
+                      >
+                        <span style={{ display: "flex", alignItems: "center", gap: 6, color: "#6B7280" }}>
+                          <span style={{ width: 7, height: 7, borderRadius: "50%", background: row.color, display: "inline-block" }} />
+                          {row.label}
+                        </span>
+                        <span style={{ fontWeight: 700, color: "#111827" }}>{row.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Upcoming Exams — real exam docs with a future date */}
+            <div style={cardStyle}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <h3 style={{ ...cardTitleStyle, margin: 0 }}>Upcoming Exams</h3>
+                <span
+                  style={{ fontSize: 12, color: "#16a34a", fontWeight: 600, cursor: "pointer" }}
+                  onClick={() => navigate("/admin/exams")}
+                >
+                  View All
+                </span>
+              </div>
+              {upcomingExams.length === 0 && !loading && (
+                <p style={{ fontSize: 13, color: "#9CA3AF" }}>Imtixaano soo socda lama helin.</p>
+              )}
+              {upcomingExams.map((e) => (
+                <div key={e.id} style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
+                  <div
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 10,
+                      background: "#E6F5EC",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                    }}
+                  >
+                    📋
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>
+                      {e.examName || "Exam"}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: "#9CA3AF" }}>
+                      {e.dateObj.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}
+                      {e.className ? ` · Class ${e.className}` : ""}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Notice Board — driven by broadcast messages sent from admin */}
+            <div style={cardStyle}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <h3 style={{ ...cardTitleStyle, margin: 0 }}>Notice Board</h3>
+                <span
+                  style={{ fontSize: 12, color: "#16a34a", fontWeight: 600, cursor: "pointer" }}
+                  onClick={() => navigate("/admin/messages")}
+                >
+                  View All
+                </span>
+              </div>
+              {notices.length === 0 && !loading && (
+                <p style={{ fontSize: 13, color: "#9CA3AF" }}>Ogeysiisyo lama helin.</p>
+              )}
+              {notices.map((n) => (
+                <div key={n.id} style={{ display: "flex", alignItems: "flex-start", gap: 10, marginBottom: 14 }}>
+                  <div
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 10,
+                      background: "#FEE2E2",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      fontSize: 15,
+                    }}
+                  >
+                    📢
+                  </div>
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 700, color: "#111827" }}>
+                      {n.subject || "Notice"}
+                    </div>
+                    <div style={{ fontSize: 11.5, color: "#9CA3AF" }}>
+                      {n.createdAt?.seconds
+                        ? new Date(n.createdAt.seconds * 1000).toLocaleDateString("en-GB", {
+                            day: "numeric",
+                            month: "short",
+                            year: "numeric",
+                          })
+                        : ""}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Calendar — current month, today highlighted */}
+            <div style={cardStyle}>
+              <h3 style={cardTitleStyle}>Calendar</h3>
+              <MiniCalendar />
             </div>
           </div>
 
@@ -818,6 +1096,14 @@ export default function Dashboard() {
       <style>{`
         @media (max-width: 1100px) {
           .dash-row {
+            grid-template-columns: 1fr !important;
+          }
+          .dash-row-4 {
+            grid-template-columns: 1fr 1fr !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .dash-row-4 {
             grid-template-columns: 1fr !important;
           }
         }
