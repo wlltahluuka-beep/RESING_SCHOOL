@@ -42,6 +42,103 @@ function groupByClass(items) {
   );
 }
 
+// Injects the responsive/media-query behavior that inline styles can't express.
+function ResponsiveStyles() {
+  return (
+    <style>{`
+      .rs-page { min-height: 100vh; background: ${COLORS.bg}; color: ${COLORS.text}; font-family: 'Inter','Segoe UI',system-ui,sans-serif; }
+      .rs-layout { display: flex; min-height: 100vh; }
+      .rs-sidebar { width: 240px; background: ${COLORS.panel}; border-right: 1px solid ${COLORS.border}; display:flex; flex-direction:column; padding: 28px 20px; gap: 32px; flex-shrink: 0; }
+      .rs-main { flex: 1; padding: 36px 44px; overflow-y: auto; min-width: 0; }
+      .rs-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+      .rs-detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+      .rs-payment-summary-row { display: flex; gap: 16px; margin-bottom: 20px; }
+      .rs-table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .rs-table { width: 100%; border-collapse: collapse; min-width: 420px; }
+      .rs-header { display:flex; justify-content: space-between; align-items: flex-end; margin-bottom: 28px; gap: 12px; }
+      .rs-bottom-nav { display: none; }
+      .rs-mobile-topbar { display: none; }
+
+      @media (max-width: 860px) {
+        .rs-layout { flex-direction: column; }
+        .rs-sidebar { display: none; }
+        .rs-mobile-topbar {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 12px;
+          padding: 14px 16px;
+          background: ${COLORS.panel};
+          border-bottom: 1px solid ${COLORS.border};
+          position: sticky;
+          top: 0;
+          z-index: 20;
+        }
+        .rs-main { padding: 18px 16px 90px 16px; }
+        .rs-header { flex-direction: column; align-items: flex-start; gap: 10px; margin-bottom: 20px; }
+        .rs-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+        .rs-detail-grid { grid-template-columns: 1fr 1fr; gap: 14px; }
+        .rs-payment-summary-row { flex-direction: column; gap: 10px; }
+        .rs-panel { padding: 16px; border-radius: 14px; }
+        .rs-stat-value { font-size: 20px !important; }
+        .rs-h1 { font-size: 22px !important; }
+
+        .rs-bottom-nav {
+          display: flex;
+          position: fixed;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          background: ${COLORS.panel};
+          border-top: 1px solid ${COLORS.border};
+          padding: 8px 4px calc(8px + env(safe-area-inset-bottom));
+          z-index: 30;
+        }
+        .rs-bottom-nav-item {
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          gap: 4px;
+          background: transparent;
+          border: none;
+          color: ${COLORS.textDim};
+          font-size: 11px;
+          padding: 6px 2px;
+          position: relative;
+        }
+        .rs-bottom-nav-item.active { color: ${COLORS.accent}; }
+        .rs-bottom-dot {
+          width: 6px; height: 6px; border-radius: 999px; background: ${COLORS.accent};
+        }
+        .rs-bottom-badge {
+          position: absolute;
+          top: -2px;
+          right: 18%;
+          background: ${COLORS.danger};
+          color: #fff;
+          font-size: 10px;
+          padding: 1px 5px;
+          border-radius: 999px;
+        }
+      }
+
+      @media (max-width: 420px) {
+        .rs-grid { grid-template-columns: 1fr 1fr; }
+        .rs-detail-grid { grid-template-columns: 1fr; }
+      }
+    `}</style>
+  );
+}
+
+const NAV_ITEMS = [
+  { key: "overview", label: "Overview", icon: "🏠" },
+  { key: "results", label: "Results", icon: "📄" },
+  { key: "attendance", label: "Attendance", icon: "📅" },
+  { key: "payments", label: "Payments", icon: "💳" },
+  { key: "messages", label: "Messages", icon: "💬" },
+];
+
 export default function StudentDashboard() {
   const navigate = useNavigate();
   const studentId = localStorage.getItem("studentId");
@@ -222,280 +319,318 @@ export default function StudentDashboard() {
 
   if (loading) {
     return (
-      <div style={{ ...styles.page, alignItems: "center", justifyContent: "center", display: "flex" }}>
+      <div className="rs-page" style={{ alignItems: "center", justifyContent: "center", display: "flex" }}>
+        <ResponsiveStyles />
         <div style={{ color: COLORS.textDim, fontSize: 14, letterSpacing: 1 }}>LOADING…</div>
       </div>
     );
   }
 
   return (
-    <div style={styles.page}>
-      <aside style={styles.sidebar}>
-        <div style={styles.brand}>
+    <div className="rs-page">
+      <ResponsiveStyles />
+
+      {/* Mobile top bar (visible only on small screens) */}
+      <div className="rs-mobile-topbar">
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div style={styles.brandMark}>RS</div>
           <div>
-            <div style={styles.brandTitle}>Resing School</div>
-            <div style={styles.brandSub}>Student Portal</div>
+            <div style={{ ...styles.brandTitle, fontSize: 13 }}>Resing School</div>
+            <div style={{ ...styles.brandSub, fontSize: 11 }}>Student Portal</div>
           </div>
         </div>
-
-        <nav style={styles.nav}>
-          {[
-            { key: "overview", label: "Overview" },
-            { key: "results", label: "Exam Results" },
-            { key: "attendance", label: "Attendance" },
-            { key: "payments", label: "Payments" },
-            { key: "messages", label: "Messages" },
-          ].map((item) => (
-            <button
-              key={item.key}
-              onClick={() => setTab(item.key)}
-              style={{
-                ...styles.navItem,
-                ...(tab === item.key ? styles.navItemActive : {}),
-              }}
-            >
-              {item.label}
-              {item.key === "messages" && messages.length > 0 && (
-                <span style={styles.navBadge}>{messages.length}</span>
-              )}
-            </button>
-          ))}
-        </nav>
-
-        <button onClick={logout} style={styles.logoutBtn}>
+        <button onClick={logout} style={styles.logoutBtnMobile}>
           Log out
         </button>
-      </aside>
+      </div>
 
-      <main style={styles.main}>
-        <header style={styles.header}>
-          <div>
-            <div style={styles.eyebrow}>Student ID {studentId}</div>
-            <h1 style={styles.h1}>
-              {student?.fullName ? `Welcome, ${student.fullName.split(" ")[0]}` : "Welcome"}
-            </h1>
+      <div className="rs-layout">
+        {/* Desktop sidebar (hidden on small screens) */}
+        <aside className="rs-sidebar">
+          <div style={styles.brand}>
+            <div style={styles.brandMark}>RS</div>
+            <div>
+              <div style={styles.brandTitle}>Resing School</div>
+              <div style={styles.brandSub}>Student Portal</div>
+            </div>
           </div>
-          <div style={styles.classPill}>{student?.className || "—"}</div>
-        </header>
 
-        {tab === "overview" && (
-          <section style={styles.grid}>
-            <StatCard
-              label="Attendance rate"
-              value={attendanceRate !== null ? `${attendanceRate}%` : "No data"}
-              accent={COLORS.accent}
-            />
-            <StatCard
-              label="Exam results recorded"
-              value={results.length}
-              accent={COLORS.warn}
-            />
-            <StatCard
-              label="Total paid"
-              value={`$${totalPaid.toLocaleString()}`}
-              accent={COLORS.accent}
-            />
-            <StatCard
-              label="Messages from admin"
-              value={messages.length}
-              accent={COLORS.danger}
-            />
-            <div style={{ ...styles.panel, gridColumn: "1 / -1" }}>
-              <div style={styles.panelTitle}>Student details</div>
-              <div style={styles.detailGrid}>
-                <Detail label="Full name" value={student?.fullName} />
-                <Detail label="Class" value={student?.className} />
-                <Detail label="District" value={student?.district} />
-                <Detail label="Monthly fee" value={student?.monthlyFee} />
-                <Detail label="Parent phone" value={student?.parentPhone} />
-                <Detail label="Student phone" value={student?.studentPhone} />
-              </div>
+          <nav style={styles.nav}>
+            {NAV_ITEMS.map((item) => (
+              <button
+                key={item.key}
+                onClick={() => setTab(item.key)}
+                style={{
+                  ...styles.navItem,
+                  ...(tab === item.key ? styles.navItemActive : {}),
+                }}
+              >
+                {item.label}
+                {item.key === "messages" && messages.length > 0 && (
+                  <span style={styles.navBadge}>{messages.length}</span>
+                )}
+              </button>
+            ))}
+          </nav>
+
+          <button onClick={logout} style={styles.logoutBtn}>
+            Log out
+          </button>
+        </aside>
+
+        <main className="rs-main">
+          <header className="rs-header">
+            <div>
+              <div style={styles.eyebrow}>Student ID {studentId}</div>
+              <h1 className="rs-h1" style={styles.h1}>
+                {student?.fullName ? `Welcome, ${student.fullName.split(" ")[0]}` : "Welcome"}
+              </h1>
             </div>
-          </section>
-        )}
+            <div style={styles.classPill}>{student?.className || "—"}</div>
+          </header>
 
-        {tab === "results" && (
-          <section style={styles.panel}>
-            <div style={styles.panelTitle}>Exam results — all classes</div>
-            {results.length === 0 ? (
-              <EmptyState text="No exam results have been recorded yet." />
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-                {groupByClass(results).map(([className, classResults]) => (
-                  <div key={className}>
-                    <div style={styles.classGroupLabel}>Class {className}</div>
-                    <table style={styles.table}>
-                      <thead>
-                        <tr>
-                          <th style={styles.th}>Subject</th>
-                          <th style={styles.th}>Exam</th>
-                          <th style={styles.th}>Marks</th>
-                          <th style={styles.th}>%</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {classResults.map((r) => {
-                          const marks = Number(r.marks);
-                          const maxMarks = Number(r.maxMarks);
-                          const pct =
-                            !isNaN(marks) && maxMarks
-                              ? Math.round((marks / maxMarks) * 100)
-                              : null;
-                          return (
-                            <tr key={r.id}>
-                              <td style={styles.td}>{r.subject || "—"}</td>
-                              <td style={styles.td}>{r.examName || r.term || "—"}</td>
-                              <td style={styles.td}>
-                                {!isNaN(marks) ? `${marks} / ${maxMarks || "—"}` : "—"}
-                              </td>
-                              <td style={styles.td}>
-                                {pct !== null ? (
-                                  <span
-                                    style={{
-                                      color: pct >= 50 ? COLORS.accent : COLORS.danger,
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    {pct}%
-                                  </span>
-                                ) : (
-                                  "—"
-                                )}
-                              </td>
+          {tab === "overview" && (
+            <section className="rs-grid">
+              <StatCard
+                label="Attendance rate"
+                value={attendanceRate !== null ? `${attendanceRate}%` : "No data"}
+                accent={COLORS.accent}
+              />
+              <StatCard
+                label="Exam results recorded"
+                value={results.length}
+                accent={COLORS.warn}
+              />
+              <StatCard
+                label="Total paid"
+                value={`$${totalPaid.toLocaleString()}`}
+                accent={COLORS.accent}
+              />
+              <StatCard
+                label="Messages from admin"
+                value={messages.length}
+                accent={COLORS.danger}
+              />
+              <div className="rs-panel" style={{ ...styles.panel, gridColumn: "1 / -1" }}>
+                <div style={styles.panelTitle}>Student details</div>
+                <div className="rs-detail-grid">
+                  <Detail label="Full name" value={student?.fullName} />
+                  <Detail label="Class" value={student?.className} />
+                  <Detail label="District" value={student?.district} />
+                  <Detail label="Monthly fee" value={student?.monthlyFee} />
+                  <Detail label="Parent phone" value={student?.parentPhone} />
+                  <Detail label="Student phone" value={student?.studentPhone} />
+                </div>
+              </div>
+            </section>
+          )}
+
+          {tab === "results" && (
+            <section className="rs-panel" style={styles.panel}>
+              <div style={styles.panelTitle}>Exam results — all classes</div>
+              {results.length === 0 ? (
+                <EmptyState text="No exam results have been recorded yet." />
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+                  {groupByClass(results).map(([className, classResults]) => (
+                    <div key={className}>
+                      <div style={styles.classGroupLabel}>Class {className}</div>
+                      <div className="rs-table-wrap">
+                        <table className="rs-table" style={styles.table}>
+                          <thead>
+                            <tr>
+                              <th style={styles.th}>Subject</th>
+                              <th style={styles.th}>Exam</th>
+                              <th style={styles.th}>Marks</th>
+                              <th style={styles.th}>%</th>
                             </tr>
-                          );
-                        })}
-                      </tbody>
-                    </table>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
-
-        {tab === "attendance" && (
-          <section style={styles.panel}>
-            <div style={styles.panelTitle}>Attendance — all classes</div>
-            {attendance.length === 0 ? (
-              <EmptyState text="No attendance records yet." />
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
-                {groupByClass(attendance).map(([className, classAttendance]) => (
-                  <div key={className}>
-                    <div style={styles.classGroupLabel}>Class {className}</div>
-                    <table style={styles.table}>
-                      <thead>
-                        <tr>
-                          <th style={styles.th}>Date</th>
-                          <th style={styles.th}>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {classAttendance.map((a) => (
-                          <tr key={a.id}>
-                            <td style={styles.td}>{a.date || "—"}</td>
-                            <td style={styles.td}>
-                              <StatusPill status={a.status} />
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                ))}
-              </div>
-            )}
-          </section>
-        )}
-
-        {tab === "payments" && (
-          <section style={styles.panel}>
-            <div style={styles.panelTitle}>Payments</div>
-            <div style={styles.paymentSummaryRow}>
-              <div style={styles.paymentSummaryCard}>
-                <div style={styles.detailLabel}>Monthly fee</div>
-                <div style={styles.statValue}>${monthlyFee.toLocaleString()}</div>
-              </div>
-              <div style={styles.paymentSummaryCard}>
-                <div style={styles.detailLabel}>Total paid</div>
-                <div style={{ ...styles.statValue, color: COLORS.accent }}>
-                  ${totalPaid.toLocaleString()}
-                </div>
-              </div>
-              <div style={styles.paymentSummaryCard}>
-                <div style={styles.detailLabel}>This month</div>
-                <div
-                  style={{
-                    ...styles.statValue,
-                    fontSize: 18,
-                    color: isCurrentMonthPaid ? COLORS.accent : COLORS.danger,
-                  }}
-                >
-                  {isCurrentMonthPaid ? "Paid" : "Not Paid"}
-                </div>
-              </div>
-            </div>
-            {sortedPayments.length === 0 ? (
-              <EmptyState text="No payments have been recorded yet." />
-            ) : (
-              <table style={styles.table}>
-                <thead>
-                  <tr>
-                    <th style={styles.th}>Month</th>
-                    <th style={styles.th}>School</th>
-                    <th style={styles.th}>Paid</th>
-                    <th style={styles.th}>Remaining</th>
-                    <th style={styles.th}>Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedPayments.map((p) => (
-                    <tr key={p.id}>
-                      <td style={styles.td}>{p.monthLabel || p.monthKey || "—"}</td>
-                      <td style={styles.td}>{p.schoolName || "—"}</td>
-                      <td style={styles.td}>${Number(p.paidAmount || 0).toLocaleString()}</td>
-                      <td style={styles.td}>${Number(p.remaining || 0).toLocaleString()}</td>
-                      <td style={styles.td}>
-                        <StatusPill status={p.status} />
-                      </td>
-                    </tr>
+                          </thead>
+                          <tbody>
+                            {classResults.map((r) => {
+                              const marks = Number(r.marks);
+                              const maxMarks = Number(r.maxMarks);
+                              const pct =
+                                !isNaN(marks) && maxMarks
+                                  ? Math.round((marks / maxMarks) * 100)
+                                  : null;
+                              return (
+                                <tr key={r.id}>
+                                  <td style={styles.td}>{r.subject || "—"}</td>
+                                  <td style={styles.td}>{r.examName || r.term || "—"}</td>
+                                  <td style={styles.td}>
+                                    {!isNaN(marks) ? `${marks} / ${maxMarks || "—"}` : "—"}
+                                  </td>
+                                  <td style={styles.td}>
+                                    {pct !== null ? (
+                                      <span
+                                        style={{
+                                          color: pct >= 50 ? COLORS.accent : COLORS.danger,
+                                          fontWeight: 600,
+                                        }}
+                                      >
+                                        {pct}%
+                                      </span>
+                                    ) : (
+                                      "—"
+                                    )}
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
                   ))}
-                </tbody>
-              </table>
-            )}
-          </section>
-        )}
+                </div>
+              )}
+            </section>
+          )}
 
-        {tab === "messages" && (
-          <section style={styles.panel}>
-            <div style={styles.panelTitle}>Messages from admin</div>
-            {messages.length === 0 ? (
-              <EmptyState text="No messages yet." />
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-                {messages.map((m) => (
-                  <div key={m.id} style={styles.messageCard}>
-                    <div style={styles.messageTitle}>{m.subject || m.title || "Announcement"}</div>
-                    <div style={styles.messageBody}>{m.text || m.body}</div>
+          {tab === "attendance" && (
+            <section className="rs-panel" style={styles.panel}>
+              <div style={styles.panelTitle}>Attendance — all classes</div>
+              {attendance.length === 0 ? (
+                <EmptyState text="No attendance records yet." />
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
+                  {groupByClass(attendance).map(([className, classAttendance]) => (
+                    <div key={className}>
+                      <div style={styles.classGroupLabel}>Class {className}</div>
+                      <div className="rs-table-wrap">
+                        <table className="rs-table" style={styles.table}>
+                          <thead>
+                            <tr>
+                              <th style={styles.th}>Date</th>
+                              <th style={styles.th}>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {classAttendance.map((a) => (
+                              <tr key={a.id}>
+                                <td style={styles.td}>{a.date || "—"}</td>
+                                <td style={styles.td}>
+                                  <StatusPill status={a.status} />
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+
+          {tab === "payments" && (
+            <section className="rs-panel" style={styles.panel}>
+              <div style={styles.panelTitle}>Payments</div>
+              <div className="rs-payment-summary-row">
+                <div style={styles.paymentSummaryCard}>
+                  <div style={styles.detailLabel}>Monthly fee</div>
+                  <div className="rs-stat-value" style={styles.statValue}>${monthlyFee.toLocaleString()}</div>
+                </div>
+                <div style={styles.paymentSummaryCard}>
+                  <div style={styles.detailLabel}>Total paid</div>
+                  <div className="rs-stat-value" style={{ ...styles.statValue, color: COLORS.accent }}>
+                    ${totalPaid.toLocaleString()}
                   </div>
-                ))}
+                </div>
+                <div style={styles.paymentSummaryCard}>
+                  <div style={styles.detailLabel}>This month</div>
+                  <div
+                    style={{
+                      ...styles.statValue,
+                      fontSize: 18,
+                      color: isCurrentMonthPaid ? COLORS.accent : COLORS.danger,
+                    }}
+                  >
+                    {isCurrentMonthPaid ? "Paid" : "Not Paid"}
+                  </div>
+                </div>
               </div>
+              {sortedPayments.length === 0 ? (
+                <EmptyState text="No payments have been recorded yet." />
+              ) : (
+                <div className="rs-table-wrap">
+                  <table className="rs-table" style={styles.table}>
+                    <thead>
+                      <tr>
+                        <th style={styles.th}>Month</th>
+                        <th style={styles.th}>School</th>
+                        <th style={styles.th}>Paid</th>
+                        <th style={styles.th}>Remaining</th>
+                        <th style={styles.th}>Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {sortedPayments.map((p) => (
+                        <tr key={p.id}>
+                          <td style={styles.td}>{p.monthLabel || p.monthKey || "—"}</td>
+                          <td style={styles.td}>{p.schoolName || "—"}</td>
+                          <td style={styles.td}>${Number(p.paidAmount || 0).toLocaleString()}</td>
+                          <td style={styles.td}>${Number(p.remaining || 0).toLocaleString()}</td>
+                          <td style={styles.td}>
+                            <StatusPill status={p.status} />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          )}
+
+          {tab === "messages" && (
+            <section className="rs-panel" style={styles.panel}>
+              <div style={styles.panelTitle}>Messages from admin</div>
+              {messages.length === 0 ? (
+                <EmptyState text="No messages yet." />
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  {messages.map((m) => (
+                    <div key={m.id} style={styles.messageCard}>
+                      <div style={styles.messageTitle}>{m.subject || m.title || "Announcement"}</div>
+                      <div style={styles.messageBody}>{m.text || m.body}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
+        </main>
+      </div>
+
+      {/* Mobile bottom nav (visible only on small screens) */}
+      <nav className="rs-bottom-nav">
+        {NAV_ITEMS.map((item) => (
+          <button
+            key={item.key}
+            onClick={() => setTab(item.key)}
+            className={`rs-bottom-nav-item${tab === item.key ? " active" : ""}`}
+          >
+            <span style={{ fontSize: 18, lineHeight: 1 }}>{item.icon}</span>
+            <span>{item.label}</span>
+            {item.key === "messages" && messages.length > 0 && (
+              <span className="rs-bottom-badge">{messages.length}</span>
             )}
-          </section>
-        )}
-      </main>
+            {tab === item.key && <span className="rs-bottom-dot" />}
+          </button>
+        ))}
+      </nav>
     </div>
   );
 }
 
 function StatCard({ label, value, accent }) {
   return (
-    <div style={styles.panel}>
+    <div className="rs-panel" style={styles.panel}>
       <div style={{ ...styles.statBar, background: accent }} />
       <div style={styles.statLabel}>{label}</div>
-      <div style={styles.statValue}>{value}</div>
+      <div className="rs-stat-value" style={styles.statValue}>{value}</div>
     </div>
   );
 }
@@ -541,22 +676,6 @@ function StatusPill({ status }) {
 }
 
 const styles = {
-  page: {
-    minHeight: "100vh",
-    background: COLORS.bg,
-    color: COLORS.text,
-    display: "flex",
-    fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
-  },
-  sidebar: {
-    width: 240,
-    background: COLORS.panel,
-    borderRight: `1px solid ${COLORS.border}`,
-    display: "flex",
-    flexDirection: "column",
-    padding: "28px 20px",
-    gap: 32,
-  },
   brand: { display: "flex", alignItems: "center", gap: 12 },
   brandMark: {
     width: 40,
@@ -569,6 +688,7 @@ const styles = {
     justifyContent: "center",
     fontWeight: 700,
     fontSize: 14,
+    flexShrink: 0,
   },
   brandTitle: { fontSize: 14, fontWeight: 700 },
   brandSub: { fontSize: 12, color: COLORS.textDim },
@@ -607,12 +727,15 @@ const styles = {
     fontSize: 13,
     cursor: "pointer",
   },
-  main: { flex: 1, padding: "36px 44px", overflowY: "auto" },
-  header: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "flex-end",
-    marginBottom: 28,
+  logoutBtnMobile: {
+    padding: "8px 12px",
+    borderRadius: 8,
+    border: `1px solid ${COLORS.border}`,
+    background: "transparent",
+    color: COLORS.textDim,
+    fontSize: 12,
+    cursor: "pointer",
+    flexShrink: 0,
   },
   eyebrow: {
     fontSize: 12,
@@ -629,16 +752,7 @@ const styles = {
     border: `1px solid ${COLORS.border}`,
     fontSize: 13,
     color: COLORS.textDim,
-  },
-  grid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(4, 1fr)",
-    gap: 18,
-  },
-  paymentSummaryRow: {
-    display: "flex",
-    gap: 16,
-    marginBottom: 20,
+    alignSelf: "flex-start",
   },
   paymentSummaryCard: {
     background: COLORS.panelSoft,
@@ -673,11 +787,6 @@ const styles = {
   },
   statLabel: { fontSize: 13, color: COLORS.textDim, marginBottom: 8 },
   statValue: { fontSize: 26, fontWeight: 700 },
-  detailGrid: {
-    display: "grid",
-    gridTemplateColumns: "repeat(3, 1fr)",
-    gap: 18,
-  },
   detailLabel: { fontSize: 12, color: COLORS.textDim, marginBottom: 4 },
   detailValue: { fontSize: 14, fontWeight: 500 },
   table: { width: "100%", borderCollapse: "collapse" },
@@ -689,11 +798,13 @@ const styles = {
     borderBottom: `1px solid ${COLORS.border}`,
     textTransform: "uppercase",
     letterSpacing: 0.5,
+    whiteSpace: "nowrap",
   },
   td: {
     padding: "12px 10px",
     borderBottom: `1px solid ${COLORS.border}`,
     fontSize: 14,
+    whiteSpace: "nowrap",
   },
   empty: {
     padding: "32px 0",
