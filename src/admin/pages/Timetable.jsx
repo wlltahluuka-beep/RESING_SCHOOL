@@ -29,12 +29,11 @@ function classRank(className) {
 }
 
 const DAYS = [
-  { key: "Monday", label: "Isniin" },
-  { key: "Tuesday", label: "Talaado" },
-  { key: "Wednesday", label: "Arbaco" },
-  { key: "Thursday", label: "Khamiis" },
-  { key: "Friday", label: "Jimce" },
-  { key: "Saturday", label: "Sabti" },
+  { key: "Monday", label: "SABTI" },
+  { key: "Tuesday", label: "AXAD" },
+  { key: "Wednesday", label: "ISNIIN" },
+  { key: "Thursday", label: "TALAADO" },
+  { key: "Friday", label: "ARBACO" },
 ];
 
 function emptySession() {
