@@ -78,7 +78,18 @@ export default function Attendance() {
       setTeachers(teacherMap);
 
       const attSnap = await getDocs(collection(db, "attendance"));
-      const list = attSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      const list = attSnap.docs
+        .map((d) => ({ id: d.id, ...d.data() }))
+        // Drop records with no valid className / studentId / date — these are
+        // broken or partial writes and were showing up as a fake "Fasalka: -" group.
+        .filter(
+          (r) =>
+            r.className &&
+            String(r.className).trim() !== "" &&
+            r.studentId &&
+            String(r.studentId).trim() !== "" &&
+            r.date
+        );
       setRecords(list);
     } catch (err) {
       console.log(err);
