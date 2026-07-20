@@ -149,35 +149,52 @@ function TeacherSelect({ value, options, onChange }) {
             left: 0,
             right: 0,
             zIndex: 50,
-            background: "#181341",
-            border: "1px solid rgba(139,108,245,0.35)",
-            borderRadius: 12,
-            boxShadow: "0 16px 40px rgba(0,0,0,0.5)",
-            maxHeight: 220,
+            background: "#181430",
+            border: "1px solid rgba(139,108,245,0.3)",
+            borderRadius: 10,
+            boxShadow: "0 16px 40px rgba(0,0,0,0.55)",
+            maxHeight: 230,
             overflowY: "auto",
-            padding: 6,
+            padding: "6px 0",
           }}
         >
+          <div
+            style={{
+              padding: "9px 16px",
+              fontSize: 12.5,
+              fontWeight: 700,
+              color: "#8b87ad",
+              textTransform: "uppercase",
+              letterSpacing: 0.4,
+            }}
+          >
+            Dooro Macalin
+          </div>
+
           <div
             onClick={() => {
               onChange("");
               setOpen(false);
             }}
             style={{
-              padding: "9px 12px",
-              borderRadius: 8,
-              fontSize: 13,
+              padding: "10px 16px",
+              fontSize: 13.5,
               color: "#8b87ad",
+              background: !value ? "#2563eb" : "transparent",
               cursor: "pointer",
             }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(139,108,245,0.12)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+            onMouseEnter={(e) => {
+              if (value) e.currentTarget.style.background = "rgba(139,108,245,0.12)";
+            }}
+            onMouseLeave={(e) => {
+              if (value) e.currentTarget.style.background = "transparent";
+            }}
           >
             -- Dooro Macalin --
           </div>
 
           {options.length === 0 && (
-            <div style={{ padding: "9px 12px", fontSize: 12.5, color: "#8b87ad" }}>
+            <div style={{ padding: "9px 16px", fontSize: 12.5, color: "#8b87ad" }}>
               Macalin looma xilsaarin fasalkan.
             </div>
           )}
@@ -192,15 +209,11 @@ function TeacherSelect({ value, options, onChange }) {
                   setOpen(false);
                 }}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  padding: "9px 12px",
-                  borderRadius: 8,
-                  fontSize: 13,
+                  padding: "10px 16px",
+                  fontSize: 13.5,
                   fontWeight: isSelected ? 700 : 500,
                   color: isSelected ? "#fff" : "#e5e3f7",
-                  background: isSelected ? "linear-gradient(135deg,#6d5df0,#8b6cf5)" : "transparent",
+                  background: isSelected ? "#2563eb" : "transparent",
                   cursor: "pointer",
                 }}
                 onMouseEnter={(e) => {
@@ -210,8 +223,7 @@ function TeacherSelect({ value, options, onChange }) {
                   if (!isSelected) e.currentTarget.style.background = "transparent";
                 }}
               >
-                <span>{opt.fullName}</span>
-                {isSelected && <Check size={14} />}
+                {opt.fullName}
               </div>
             );
           })}
@@ -222,6 +234,7 @@ function TeacherSelect({ value, options, onChange }) {
 }
 
 
+export default function Timetable() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [teachers, setTeachers] = useState({}); // id -> { fullName, photoUrl, subject, classes }
@@ -897,7 +910,7 @@ function TeacherSelect({ value, options, onChange }) {
       </div>
     </div>
   );
-
+}
 
 function WeekSummary({ selectedClass, timetableDocs, teachers }) {
   const rows = DAYS.map((d) => {
