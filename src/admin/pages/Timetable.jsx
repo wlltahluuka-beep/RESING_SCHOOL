@@ -3,9 +3,12 @@ import { db } from "../../firebase/firebase";
 import {
   collection,
   getDocs,
+  query,
+  where,
   doc,
   setDoc,
   deleteDoc,
+  writeBatch,
 } from "firebase/firestore";
 import {
   Clock,
@@ -46,6 +49,16 @@ function emptySession() {
   };
 }
 
+// ---- Kala saar xiisadaha marka la eego wakhtiga bilowga, oo ku dar
+// sessionNumber (Xiisad #1, #2, ...) si midka kore uu had iyo jeer
+// noqdo Xiisadda 1aad ---- 
+function withSessionNumbers(sessions) {
+  const sorted = [...sessions].sort((a, b) =>
+    (a.startTime || "").localeCompare(b.startTime || "")
+  );
+  return sorted.map((s, i) => ({ ...s, sessionNumber: i + 1 }));
+}
+
 function ResponsiveStyles() {
   return (
     <style>{`
@@ -53,7 +66,7 @@ function ResponsiveStyles() {
       .tt-content { flex: 1; min-width: 0; }
       .tt-class-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 18px; }
       .tt-day-tabs { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; }
-      .tt-session-row { display: grid; grid-template-columns: 110px 110px 1fr 1fr 40px; gap: 10px; align-items: center; }
+      .tt-session-row { display: grid; grid-template-columns: 34px 110px 110px 1fr 1fr 40px; gap: 10px; align-items: center; }
       .tt-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
 
       @media (max-width: 900px) {
@@ -62,7 +75,7 @@ function ResponsiveStyles() {
         .tt-header-title { font-size: 20px !important; }
         .tt-class-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
         .tt-toolbar { flex-direction: column; align-items: stretch !important; }
-        .tt-session-row { grid-template-columns: 1fr 1fr; }
+        .tt-session-row { grid-template-columns: 26px 1fr 1fr; }
       }
       @media (max-width: 480px) {
         .tt-class-grid { grid-template-columns: 1fr; }
@@ -74,7 +87,7 @@ function ResponsiveStyles() {
 export default function Timetable() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [teachers, setTeachers] = useState({}); // id -> { fullName, photoUrl, subject }
+  const [teachers, setTeachers] = useState({}); // id -> { fullName, photoUrl, subject, classes }
   const [timetableDocs, setTimetableDocs] = useState({}); // `${className}__${day}` -> { sessions: [] }
   const [selectedClass, setSelectedClass] = useState(null);
   const [activeDay, setActiveDay] = useState(DAYS[0].key);
@@ -100,6 +113,8 @@ export default function Timetable() {
           fullName: data.fullName || data.username || d.id,
           photoUrl: data.photoUrl || data.photoURL || data.avatar || "",
           subject: data.subject || data.subjectName || "",
+          // classes: [{ className, subject, dayValid, ... }]
+          classes: Array.isArray(data.classes) ? data.classes : [],
         };
       });
       setTeachers(teacherMap);
@@ -121,6 +136,23 @@ export default function Timetable() {
     return [...CLASS_ORDER].sort((a, b) => classRank(a) - classRank(b));
   }, []);
 
+  // ---- Macallimiinta u gaarka ah fasalka la doortay kaliya ----
+  // Macallin wuxuu ku muuqdaa liiska haddii uu leeyahay class
+  // gudaha `classes[]` oo className-kiisu la mid yahay fasalka la doortay.
+  const teachersForSelectedClass = useMemo(() => {
+    if (!selectedClass) return {};
+    const filtered = {};
+    Object.entries(teachers).forEach(([tid, info]) => {
+      const teachesThisClass = (info.classes || []).some(
+        (c) => String(c.className || "").toUpperCase() === String(selectedClass).toUpperCase()
+      );
+      if (teachesThisClass) {
+        filtered[tid] = info;
+      }
+    });
+    return filtered;
+  }, [teachers, selectedClass]);
+
   // Whenever the selected class or active day changes, load the draft
   // sessions for that class/day from the loaded timetable docs.
   useEffect(() => {
@@ -129,7 +161,7 @@ export default function Timetable() {
     const existing = timetableDocs[key];
     setDraftSessions(
       existing?.sessions?.length
-        ? existing.sessions.map((s) => ({ ...s }))
+        ? withSessionNumbers(existing.sessions.map((s) => ({ ...s })))
         : [emptySession()]
     );
     setDirty(false);
@@ -144,19 +176,61 @@ export default function Timetable() {
     setDraftSessions((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], [field]: value };
-      return next;
+      // Xiisad #1, #2 ... dib u tir marka wakhtiga la badalo
+      return field === "startTime" ? withSessionNumbers(next) : next;
     });
     setDirty(true);
   }
 
   function addSession() {
-    setDraftSessions((prev) => [...prev, emptySession()]);
+    setDraftSessions((prev) => withSessionNumbers([...prev, emptySession()]));
     setDirty(true);
   }
 
   function removeSession(index) {
-    setDraftSessions((prev) => prev.filter((_, i) => i !== index));
+    setDraftSessions((prev) => withSessionNumbers(prev.filter((_, i) => i !== index)));
     setDirty(true);
+  }
+
+  // ---- Marka jadwalka maalintaas la kaydiyo, si toos ah ugu qor
+  // dhammaan ardayda fasalkaas ku jira (students collection) field
+  // "timetable" oo ay ku jirto full jadwalka toddobaadka fasalkooda,
+  // si ay Student Dashboard-ku si toos ah uga soo aqriyo. ----
+  async function syncStudentsTimetable(className, updatedTimetableDocs) {
+    try {
+      const studentsSnap = await getDocs(
+        query(collection(db, "students"), where("className", "==", className))
+      );
+      if (studentsSnap.empty) return;
+
+      // Isku dar jadwalka toddobaadka oo dhan ee fasalkan (5-ta maalmood)
+      const weekSchedule = DAYS.map((d) => {
+        const key = `${className}__${d.key}`;
+        const sessions = (updatedTimetableDocs[key]?.sessions || [])
+          .slice()
+          .sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""))
+          .map((s) => ({
+            sessionNumber: s.sessionNumber,
+            startTime: s.startTime,
+            endTime: s.endTime,
+            teacherId: s.teacherId,
+            teacherName: teachers[s.teacherId]?.fullName || s.teacherId,
+            subject: s.subject || "",
+          }));
+        return { day: d.key, dayLabel: d.label, sessions };
+      });
+
+      const batch = writeBatch(db);
+      studentsSnap.docs.forEach((studentDoc) => {
+        batch.update(doc(db, "students", studentDoc.id), {
+          timetable: weekSchedule,
+          timetableUpdatedAt: new Date(),
+        });
+      });
+      await batch.commit();
+    } catch (err) {
+      console.log("Khalad marka la sync gareynayo timetable-ka ardayda:", err);
+    }
   }
 
   async function saveDay() {
@@ -165,32 +239,33 @@ export default function Timetable() {
     const key = `${selectedClass}__${activeDay}`;
 
     // Skip rows with no teacher selected to avoid saving blank sessions.
-    const cleanSessions = draftSessions.filter(
-      (s) => s.teacherId && s.teacherId.trim() !== ""
+    const cleanSessions = withSessionNumbers(
+      draftSessions.filter((s) => s.teacherId && s.teacherId.trim() !== "")
     );
 
     try {
+      let updatedDocs = { ...timetableDocs };
+
       if (cleanSessions.length === 0) {
         await deleteDoc(doc(db, "timetable", key));
+        delete updatedDocs[key];
       } else {
-        await setDoc(doc(db, "timetable", key), {
+        const payload = {
           className: selectedClass,
           day: activeDay,
           sessions: cleanSessions,
           updatedAt: new Date(),
-        });
+        };
+        await setDoc(doc(db, "timetable", key), payload);
+        updatedDocs[key] = payload;
       }
-      setTimetableDocs((prev) => {
-        const next = { ...prev };
-        if (cleanSessions.length === 0) {
-          delete next[key];
-        } else {
-          next[key] = { className: selectedClass, day: activeDay, sessions: cleanSessions };
-        }
-        return next;
-      });
+
+      setTimetableDocs(updatedDocs);
       setDraftSessions(cleanSessions.length ? cleanSessions : [emptySession()]);
       setDirty(false);
+
+      // ---- Toos u qor ardayda fasalkan jadwalkooda cusub ----
+      await syncStudentsTimetable(selectedClass, updatedDocs);
     } catch (err) {
       console.log(err);
       alert("Khalad ayaa dhacay marka la kaydinayay: " + err.message);
@@ -542,6 +617,23 @@ export default function Timetable() {
                   </button>
                 </div>
 
+                {Object.keys(teachersForSelectedClass).length === 0 && (
+                  <div
+                    style={{
+                      background: "rgba(245,158,11,0.1)",
+                      border: "1px solid rgba(245,158,11,0.3)",
+                      borderRadius: 10,
+                      padding: "10px 14px",
+                      color: "#F59E0B",
+                      fontSize: 12.5,
+                      marginBottom: 14,
+                    }}
+                  >
+                    Wali macalin looma xilsaarin fasalkan (Fasalka {selectedClass}). Aad Teachers
+                    ku dar fasalkan macalin.
+                  </div>
+                )}
+
                 <div
                   className="tt-session-row"
                   style={{
@@ -552,6 +644,7 @@ export default function Timetable() {
                     textTransform: "uppercase",
                   }}
                 >
+                  <div>#</div>
                   <div>Bilow</div>
                   <div>Dhamaad</div>
                   <div>Macalinka</div>
@@ -571,6 +664,26 @@ export default function Timetable() {
                         padding: "10px 12px",
                       }}
                     >
+                      {/* Xiisad #N - midka kore had iyo jeer waa #1 */}
+                      <div
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          width: 30,
+                          height: 30,
+                          borderRadius: "50%",
+                          background: "rgba(139,108,245,0.15)",
+                          border: "1px solid rgba(139,108,245,0.35)",
+                          color: "#c4b8f7",
+                          fontWeight: 700,
+                          fontSize: 12,
+                        }}
+                        title={`Xiisad #${session.sessionNumber}`}
+                      >
+                        {session.sessionNumber}
+                      </div>
+
                       <input
                         type="time"
                         value={session.startTime}
@@ -588,7 +701,7 @@ export default function Timetable() {
                         onChange={(e) => {
                           const tid = e.target.value;
                           updateSession(index, "teacherId", tid);
-                          const info = teachers[tid];
+                          const info = teachersForSelectedClass[tid];
                           if (info?.subject && !session.subject) {
                             updateSession(index, "subject", info.subject);
                           }
@@ -596,7 +709,7 @@ export default function Timetable() {
                         style={{ ...fieldStyle, cursor: "pointer" }}
                       >
                         <option value="">-- Dooro Macalin --</option>
-                        {Object.entries(teachers).map(([tid, info]) => (
+                        {Object.entries(teachersForSelectedClass).map(([tid, info]) => (
                           <option key={tid} value={tid}>
                             {info.fullName}
                           </option>
@@ -655,9 +768,7 @@ export default function Timetable() {
 function WeekSummary({ selectedClass, timetableDocs, teachers }) {
   const rows = DAYS.map((d) => {
     const key = `${selectedClass}__${d.key}`;
-    const sessions = (timetableDocs[key]?.sessions || [])
-      .slice()
-      .sort((a, b) => (a.startTime || "").localeCompare(b.startTime || ""));
+    const sessions = withSessionNumbers(timetableDocs[key]?.sessions || []);
     return { day: d, sessions };
   });
 
@@ -713,7 +824,7 @@ function WeekSummary({ selectedClass, timetableDocs, teachers }) {
                               whiteSpace: "nowrap",
                             }}
                           >
-                            {s.startTime}–{s.endTime} · {teacherName}
+                            #{s.sessionNumber} · {s.startTime}–{s.endTime} · {teacherName}
                             {s.subject ? ` (${s.subject})` : ""}
                           </span>
                         );
