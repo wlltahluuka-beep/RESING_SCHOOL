@@ -20,6 +20,7 @@ import {
   CalendarDays,
   Users,
   Loader2,
+  Check,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
@@ -84,7 +85,143 @@ function ResponsiveStyles() {
   );
 }
 
-export default function Timetable() {
+// ============================================================
+// TeacherSelect — dropdown gaar ah (ma aha native <select>) si
+// theme-ka mugdiga ah (dark theme) loo maamulo si buuxda oo
+// aanu kula dhicin row-yada kale ee list-ka.
+// ============================================================
+function TeacherSelect({ value, options, onChange }) {
+  const [open, setOpen] = useState(false);
+  const wrapRef = useState(() => ({ current: null }))[0];
+
+  useEffect(() => {
+    function handleOutside(e) {
+      if (wrapRef.current && !wrapRef.current.contains(e.target)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleOutside);
+    return () => document.removeEventListener("mousedown", handleOutside);
+  }, [wrapRef]);
+
+  const selectedLabel = options.find((o) => o.id === value)?.fullName;
+
+  return (
+    <div ref={(el) => (wrapRef.current = el)} style={{ position: "relative", width: "100%" }}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          ...fieldStyle,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          cursor: "pointer",
+          textAlign: "left",
+        }}
+      >
+        <span
+          style={{
+            color: selectedLabel ? "#e5e3f7" : "#8b87ad",
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {selectedLabel || "-- Dooro Macalin --"}
+        </span>
+        <ChevronDown
+          size={15}
+          color="#8b87ad"
+          style={{
+            flexShrink: 0,
+            transition: "transform .15s",
+            transform: open ? "rotate(180deg)" : "rotate(0deg)",
+          }}
+        />
+      </button>
+
+      {open && (
+        <div
+          style={{
+            position: "absolute",
+            top: "calc(100% + 6px)",
+            left: 0,
+            right: 0,
+            zIndex: 50,
+            background: "#181341",
+            border: "1px solid rgba(139,108,245,0.35)",
+            borderRadius: 12,
+            boxShadow: "0 16px 40px rgba(0,0,0,0.5)",
+            maxHeight: 220,
+            overflowY: "auto",
+            padding: 6,
+          }}
+        >
+          <div
+            onClick={() => {
+              onChange("");
+              setOpen(false);
+            }}
+            style={{
+              padding: "9px 12px",
+              borderRadius: 8,
+              fontSize: 13,
+              color: "#8b87ad",
+              cursor: "pointer",
+            }}
+            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(139,108,245,0.12)")}
+            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}
+          >
+            -- Dooro Macalin --
+          </div>
+
+          {options.length === 0 && (
+            <div style={{ padding: "9px 12px", fontSize: 12.5, color: "#8b87ad" }}>
+              Macalin looma xilsaarin fasalkan.
+            </div>
+          )}
+
+          {options.map((opt) => {
+            const isSelected = opt.id === value;
+            return (
+              <div
+                key={opt.id}
+                onClick={() => {
+                  onChange(opt.id);
+                  setOpen(false);
+                }}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  padding: "9px 12px",
+                  borderRadius: 8,
+                  fontSize: 13,
+                  fontWeight: isSelected ? 700 : 500,
+                  color: isSelected ? "#fff" : "#e5e3f7",
+                  background: isSelected ? "linear-gradient(135deg,#6d5df0,#8b6cf5)" : "transparent",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSelected) e.currentTarget.style.background = "rgba(139,108,245,0.12)";
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected) e.currentTarget.style.background = "transparent";
+                }}
+              >
+                <span>{opt.fullName}</span>
+                {isSelected && <Check size={14} />}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [teachers, setTeachers] = useState({}); // id -> { fullName, photoUrl, subject, classes }
@@ -652,7 +789,7 @@ export default function Timetable() {
                   <div></div>
                 </div>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 10, position: "relative" }}>
                   {draftSessions.map((session, index) => (
                     <div
                       key={session.id}
@@ -662,6 +799,8 @@ export default function Timetable() {
                         border: "1px solid rgba(139,108,245,0.18)",
                         borderRadius: 12,
                         padding: "10px 12px",
+                        position: "relative",
+                        zIndex: draftSessions.length - index,
                       }}
                     >
                       {/* Xiisad #N - midka kore had iyo jeer waa #1 */}
@@ -696,25 +835,20 @@ export default function Timetable() {
                         onChange={(e) => updateSession(index, "endTime", e.target.value)}
                         style={fieldStyle}
                       />
-                      <select
+                      <TeacherSelect
                         value={session.teacherId}
-                        onChange={(e) => {
-                          const tid = e.target.value;
+                        options={Object.entries(teachersForSelectedClass).map(([tid, info]) => ({
+                          id: tid,
+                          fullName: info.fullName,
+                        }))}
+                        onChange={(tid) => {
                           updateSession(index, "teacherId", tid);
                           const info = teachersForSelectedClass[tid];
                           if (info?.subject && !session.subject) {
                             updateSession(index, "subject", info.subject);
                           }
                         }}
-                        style={{ ...fieldStyle, cursor: "pointer" }}
-                      >
-                        <option value="">-- Dooro Macalin --</option>
-                        {Object.entries(teachersForSelectedClass).map(([tid, info]) => (
-                          <option key={tid} value={tid}>
-                            {info.fullName}
-                          </option>
-                        ))}
-                      </select>
+                      />
                       <input
                         type="text"
                         placeholder="Maadada"
@@ -763,7 +897,7 @@ export default function Timetable() {
       </div>
     </div>
   );
-}
+
 
 function WeekSummary({ selectedClass, timetableDocs, teachers }) {
   const rows = DAYS.map((d) => {
