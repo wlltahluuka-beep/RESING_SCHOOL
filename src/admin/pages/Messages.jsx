@@ -1,513 +1,415 @@
-import { useEffect, useState } from "react";
-import {
-  collection,
-  query,
-  orderBy,
-  onSnapshot,
-  doc,
-  updateDoc,
-  deleteDoc,
-} from "firebase/firestore";
+import { useEffect, useMemo, useState } from "react";
+import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase/firebase";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
-import MessagesCard from "../components/MessagesCard";
-import {
-  Bell,
-  Search,
-  FileText,
-  Trash2,
-  CheckCheck,
-  Mail,
-  MailOpen,
-  Paperclip,
-} from "lucide-react";
+import { Download, ChevronRight, ChevronLeft } from "lucide-react";
 
-export default function Messages() {
-  const [messages, setMessages] = useState([]);
+const cardStyle = {
+  background: "#fff",
+  borderRadius: 18,
+  padding: "22px 24px",
+  boxShadow: "0 4px 18px rgba(17,24,39,0.06)",
+  border: "1px solid rgba(17,24,39,0.05)",
+};
+
+export default function Exams() {
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [filterRole, setFilterRole] = useState("All");
-  const [selected, setSelected] = useState(null);
+  const [students, setStudents] = useState([]);
+  const [exams, setExams] = useState([]);
+  const [results, setResults] = useState([]);
+  const [selectedClass, setSelectedClass] = useState(null);
 
-  // ---- Real-time listener: fariin kasta oo soo gasha ayaa isla markiiba
-  // muuqata iyada oo aan reload la sameyn ----
   useEffect(() => {
-    const q = query(collection(db, "messages"), orderBy("createdAt", "desc"));
-
-    const unsub = onSnapshot(
-      q,
-      (snap) => {
-        setMessages(snap.docs.map((d) => ({ id: d.id, ...d.data() })));
-        setLoading(false);
-      },
-      (err) => {
-        console.log(err);
-        setLoading(false);
-      }
-    );
-
-    return () => unsub();
+    load();
   }, []);
 
-  const unreadCount = messages.filter((m) => !m.read).length;
+  async function load() {
+    try {
+      setLoading(true);
 
-  const roles = ["All", ...new Set(messages.map((m) => m.senderRole).filter(Boolean))];
+      const [studentsSnap, examsSnap, resultsSnap] = await Promise.all([
+        getDocs(collection(db, "students")),
+        getDocs(collection(db, "exams")),
+        getDocs(collection(db, "results")),
+      ]);
 
-  const filtered = messages.filter((m) => {
-    const q = search.toLowerCase();
-    const matchesSearch =
-      (m.senderName || "").toLowerCase().includes(q) ||
-      (m.text || "").toLowerCase().includes(q);
-    const matchesRole = filterRole === "All" || m.senderRole === filterRole;
-    return matchesSearch && matchesRole;
-  });
-
-  async function openMessage(msg) {
-    setSelected(msg);
-    if (!msg.read) {
-      try {
-        await updateDoc(doc(db, "messages", msg.id), { read: true });
-      } catch (err) {
-        console.log(err);
-      }
+      setStudents(studentsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setExams(examsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+      setResults(resultsSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
+    } catch (err) {
+      console.error("Khalad ayaa dhacay markii xogta Exams laga soo qaadanayay:", err);
+    } finally {
+      setLoading(false);
     }
   }
 
-  async function markAllRead() {
-    try {
-      await Promise.all(
-        messages
-          .filter((m) => !m.read)
-          .map((m) => updateDoc(doc(db, "messages", m.id), { read: true }))
+  // Group everything by class, using each student's className as the
+  // source of truth (exams/results carry className too, but a student's
+  // own record is what decides which class roster they belong to).
+  const classes = useMemo(() => {
+    const set = new Set();
+    students.forEach((s) => {
+      if (s.className && s.className.trim() !== "") set.add(s.className);
+    });
+    exams.forEach((e) => {
+      if (e.className && e.className.trim() !== "") set.add(e.className);
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }, [students, exams]);
+
+  const examsForClass = useMemo(() => {
+    if (!selectedClass) return [];
+    return exams
+      .filter((e) => e.className === selectedClass)
+      .sort((a, b) => (a.subject || "").localeCompare(b.subject || ""));
+  }, [exams, selectedClass]);
+
+  // Build one spreadsheet-style table for the selected class: one row per
+  // student, one column per subject/exam, plus Total and Average columns —
+  // exactly like an Excel gradebook.
+  const gradebook = useMemo(() => {
+    if (!selectedClass) return { subjects: [], rows: [] };
+
+    const classStudents = students.filter((s) => s.className === selectedClass);
+    const subjectList = Array.from(
+      new Set(examsForClass.map((e) => e.subject || e.examName || "Subject"))
+    );
+
+    const rows = classStudents.map((stu) => {
+      const studentResults = results.filter(
+        (r) => r.studentId === (stu.studentId || stu.id)
       );
-    } catch (err) {
-      console.log(err);
-    }
-  }
 
-  async function deleteMessage(id) {
-    if (!confirm("Ma hubtaa inaad tirtirto fariintan?")) return;
-    try {
-      await deleteDoc(doc(db, "messages", id));
-      if (selected?.id === id) setSelected(null);
-    } catch (err) {
-      console.log(err);
-    }
-  }
+      let totalMarks = 0;
+      let totalMax = 0;
+      const bySubject = {};
 
-  function formatDate(ts) {
-    if (!ts) return "—";
-    const date = ts.toDate ? ts.toDate() : new Date(ts);
-    return date.toLocaleString();
+      subjectList.forEach((subj) => {
+        const match = studentResults.find((r) => (r.subject || r.examName) === subj);
+        if (match) {
+          const marks = Number(match.marks) || 0;
+          const maxMarks = Number(match.maxMarks) || 0;
+          bySubject[subj] = { marks, maxMarks };
+          totalMarks += marks;
+          totalMax += maxMarks;
+        } else {
+          bySubject[subj] = null;
+        }
+      });
+
+      const average = totalMax > 0 ? Math.round((totalMarks / totalMax) * 100) : 0;
+
+      return {
+        studentId: stu.studentId || stu.id,
+        fullName: stu.fullName || stu.name || "—",
+        bySubject,
+        totalMarks,
+        totalMax,
+        average,
+      };
+    });
+
+    return { subjects: subjectList, rows };
+  }, [selectedClass, students, examsForClass, results]);
+
+  function exportCSV() {
+    if (!selectedClass || gradebook.rows.length === 0) return;
+
+    const headers = ["Student Name", ...gradebook.subjects, "Total", "Average %"];
+    const lines = [headers.join(",")];
+
+    gradebook.rows.forEach((row) => {
+      const cells = [
+        `"${row.fullName}"`,
+        ...gradebook.subjects.map((subj) => {
+          const cell = row.bySubject[subj];
+          return cell ? cell.marks : "";
+        }),
+        `${row.totalMarks}/${row.totalMax}`,
+        `${row.average}%`,
+      ];
+      lines.push(cells.join(","));
+    });
+
+    const csv = lines.join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `Class-${selectedClass}-Results.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#0b0a1c" }}>
+    <div style={{ display: "flex", minHeight: "100vh", background: "#F3F4F8", fontFamily: "'Inter','Segoe UI',sans-serif" }}>
       <Sidebar />
 
       <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ padding: "20px 24px 0" }}>
-          <Topbar title="Messages" />
+        <div style={{ padding: "22px 26px 0" }}>
+          <Topbar />
         </div>
 
         <div style={{ padding: "26px 30px" }}>
-          {/* ---- Header ---- */}
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: 22,
-              flexWrap: "wrap",
-              gap: 14,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-              <div style={bellWrap}>
-                <Bell color="#8b6cf5" size={22} />
-                {unreadCount > 0 && <span style={bellBadge}>{unreadCount}</span>}
-              </div>
-              <div>
-                <h1 style={{ margin: 0, color: "#fff", fontSize: 24, fontWeight: 800 }}>
-                  Fariimaha Soo Gala
-                </h1>
-                <p style={{ margin: "3px 0 0", color: "#8b87ad", fontSize: 13 }}>
-                  Cabashooyinka, PDF-yada iyo fariimaha maamulayaasha ay soo diraan
-                </p>
-              </div>
+          <h1 style={{ margin: "0 0 22px", fontSize: 22, fontWeight: 800, color: "#111827" }}>
+            Exams
+          </h1>
+
+          {loading && (
+            <div style={{ ...cardStyle, textAlign: "center", color: "#9CA3AF" }}>
+              Xogta ayaa la soo qaadayaa...
             </div>
+          )}
 
-            {unreadCount > 0 && (
-              <button onClick={markAllRead} style={markAllBtn}>
-                <CheckCheck size={16} />
-                Calaamadee dhammaan la akhriyay
-              </button>
-            )}
-          </div>
+          {!loading && !selectedClass && (
+            <>
+              <p style={{ color: "#6B7280", fontSize: 14, marginBottom: 16 }}>
+                Dooro fasal si aad u aragto imtixaanada iyo natiijooyinka ardayda.
+              </p>
 
-          {/* ---- Search + filter ---- */}
-          <div style={{ display: "flex", gap: 14, marginBottom: 22, flexWrap: "wrap" }}>
-            <div style={searchWrap}>
-              <Search size={16} color="#8b87ad" />
-              <input
-                placeholder="Raadi fariin ama cid..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                style={searchInput}
-              />
-            </div>
-
-            <select
-              value={filterRole}
-              onChange={(e) => setFilterRole(e.target.value)}
-              style={roleSelect}
-            >
-              {roles.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* ---- Dir Fariin (Compose) ---- */}
-          <div style={{ marginBottom: 24 }}>
-            <MessagesCard messages={messages} />
-          </div>
-
-          <div style={{ display: "grid", gridTemplateColumns: "1.1fr 1.6fr", gap: 20, alignItems: "start" }}>
-            {/* ---- Liiska fariimaha ---- */}
-            <div style={listCard}>
-              {loading ? (
-                <p style={{ color: "#8b87ad" }}>Loading...</p>
-              ) : filtered.length === 0 ? (
-                <div style={{ textAlign: "center", padding: "30px 0" }}>
-                  <Mail size={40} color="#4b4772" />
-                  <p style={{ color: "#8b87ad", marginTop: 12 }}>Weli fariin lama helin.</p>
+              {classes.length === 0 ? (
+                <div style={{ ...cardStyle, textAlign: "center", color: "#9CA3AF" }}>
+                  Fasallo iyo imtixaano lama helin.
                 </div>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                  {filtered.map((msg) => (
-                    <div
-                      key={msg.id}
-                      onClick={() => openMessage(msg)}
-                      style={{
-                        ...msgRow,
-                        borderColor:
-                          selected?.id === msg.id
-                            ? "rgba(139,108,245,0.6)"
-                            : "rgba(139,108,245,0.12)",
-                        background: !msg.read
-                          ? "rgba(139,108,245,0.08)"
-                          : "rgba(255,255,255,0.02)",
-                      }}
-                    >
-                      <div
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+                    gap: 18,
+                  }}
+                >
+                  {classes.map((cls) => {
+                    const examCount = exams.filter((e) => e.className === cls).length;
+                    const studentCount = students.filter((s) => s.className === cls).length;
+                    return (
+                      <button
+                        key={cls}
+                        onClick={() => setSelectedClass(cls)}
                         style={{
-                          ...senderAvatar,
-                          background: msg.senderPhoto
-                            ? `url(${msg.senderPhoto}) center/cover`
-                            : "linear-gradient(135deg,#6D5DF0,#8B5CF6)",
+                          ...cardStyle,
+                          textAlign: "left",
+                          cursor: "pointer",
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: 10,
+                          border: "1px solid rgba(22,163,74,0.15)",
                         }}
                       >
-                        {!msg.senderPhoto &&
-                          (msg.senderName || "?").charAt(0).toUpperCase()}
-                      </div>
-
-                      {msg.read ? (
-                        <MailOpen size={15} color="#6b6890" />
-                      ) : (
-                        <Mail size={15} color="#8b6cf5" />
-                      )}
-
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
-                          <span
-                            style={{
-                              color: "#fff",
-                              fontWeight: msg.read ? 500 : 700,
-                              fontSize: 13.5,
-                              whiteSpace: "nowrap",
-                              overflow: "hidden",
-                              textOverflow: "ellipsis",
-                            }}
-                          >
-                            {msg.senderName || "Qof aan la aqoon"}
-                          </span>
-                          <span style={{ color: "#6b6890", fontSize: 11, whiteSpace: "nowrap" }}>
-                            {formatDate(msg.createdAt)}
-                          </span>
-                        </div>
                         <div
                           style={{
-                            color: "#a9a6c4",
-                            fontSize: 12.5,
-                            marginTop: 3,
-                            whiteSpace: "nowrap",
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
+                            width: 44,
+                            height: 44,
+                            borderRadius: 12,
+                            background: "#E6F5EC",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: 20,
                           }}
                         >
-                          {msg.text || "—"}
+                          📘
                         </div>
-                        <div style={{ display: "flex", gap: 6, marginTop: 6 }}>
-                          <span style={roleTag}>{msg.senderRole || "—"}</span>
-                          {msg.fileUrl && (
-                            <span style={{ ...roleTag, display: "inline-flex", alignItems: "center", gap: 4 }}>
-                              <Paperclip size={11} /> PDF
-                            </span>
-                          )}
+                        <div>
+                          <div style={{ fontWeight: 800, fontSize: 16, color: "#111827" }}>
+                            Class {cls}
+                          </div>
+                          <div style={{ fontSize: 12.5, color: "#9CA3AF", marginTop: 2 }}>
+                            {examCount} exam{examCount !== 1 ? "s" : ""} · {studentCount} student
+                            {studentCount !== 1 ? "s" : ""}
+                          </div>
                         </div>
-                      </div>
-                    </div>
-                  ))}
+                        <span
+                          style={{
+                            display: "flex",
+                            alignItems: "center",
+                            gap: 4,
+                            fontSize: 12.5,
+                            fontWeight: 700,
+                            color: "#16a34a",
+                          }}
+                        >
+                          View results <ChevronRight size={14} />
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
-            </div>
+            </>
+          )}
 
-            {/* ---- Faahfaahinta fariinta la doortay ---- */}
-            <div style={detailCard}>
-              {!selected ? (
-                <div style={{ textAlign: "center", padding: "60px 0", color: "#6b6890" }}>
-                  <FileText size={40} style={{ margin: "0 auto 12px" }} />
-                  <p>Dooro fariin si aad faahfaahinteeda u aragto.</p>
-                </div>
-              ) : (
-                <>
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "flex-start",
-                      marginBottom: 18,
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
-                      <div
+          {!loading && selectedClass && (
+            <div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  marginBottom: 18,
+                  flexWrap: "wrap",
+                  gap: 12,
+                }}
+              >
+                <button
+                  onClick={() => setSelectedClass(null)}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    background: "transparent",
+                    border: "none",
+                    color: "#16a34a",
+                    fontWeight: 700,
+                    fontSize: 13.5,
+                    cursor: "pointer",
+                    padding: 0,
+                  }}
+                >
+                  <ChevronLeft size={16} /> All Classes
+                </button>
+
+                <button
+                  onClick={exportCSV}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "10px 18px",
+                    borderRadius: 12,
+                    border: "none",
+                    background: "#16a34a",
+                    color: "#fff",
+                    fontWeight: 700,
+                    fontSize: 13,
+                    cursor: "pointer",
+                  }}
+                >
+                  <Download size={15} />
+                  Export to Excel (CSV)
+                </button>
+              </div>
+
+              <div style={{ ...cardStyle, marginBottom: 20 }}>
+                <h3 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 700, color: "#111827" }}>
+                  Class {selectedClass} — Exams
+                </h3>
+                {examsForClass.length === 0 ? (
+                  <p style={{ fontSize: 13, color: "#9CA3AF" }}>Imtixaano lama helin fasalkan.</p>
+                ) : (
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: 10 }}>
+                    {examsForClass.map((e) => (
+                      <span
+                        key={e.id}
                         style={{
-                          ...senderAvatarLarge,
-                          background: selected.senderPhoto
-                            ? `url(${selected.senderPhoto}) center/cover`
-                            : "linear-gradient(135deg,#6D5DF0,#8B5CF6)",
+                          background: "#F3F4F6",
+                          padding: "8px 14px",
+                          borderRadius: 20,
+                          fontSize: 12.5,
+                          color: "#374151",
+                          fontWeight: 600,
                         }}
                       >
-                        {!selected.senderPhoto &&
-                          (selected.senderName || "?").charAt(0).toUpperCase()}
-                      </div>
-                      <div>
-                        <h2 style={{ margin: 0, color: "#fff", fontSize: 19 }}>
-                          {selected.senderName || "Qof aan la aqoon"}
-                        </h2>
-                        <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
-                          <span style={roleTag}>{selected.senderRole || "—"}</span>
-                          <span style={{ color: "#6b6890", fontSize: 12.5 }}>
-                            {formatDate(selected.createdAt)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-
-                    <button onClick={() => deleteMessage(selected.id)} style={deleteBtn}>
-                      <Trash2 size={15} />
-                    </button>
+                        {e.examName || e.subject} · {e.subject || "—"} · Max {e.maxMarks || "—"}
+                      </span>
+                    ))}
                   </div>
+                )}
+              </div>
 
-                  <div style={messageBody}>{selected.text || "—"}</div>
+              <div style={{ ...cardStyle, overflowX: "auto" }}>
+                <h3 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 700, color: "#111827" }}>
+                  Class {selectedClass} — Results (Excel-style Gradebook)
+                </h3>
 
-                  {selected.fileUrl && (
-                    <a
-                      href={selected.fileUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      style={pdfLink}
-                    >
-                      <FileText size={18} />
-                      {selected.fileName || "Fiiri Faylka PDF"}
-                    </a>
-                  )}
-                </>
-              )}
+                {gradebook.rows.length === 0 ? (
+                  <p style={{ fontSize: 13, color: "#9CA3AF" }}>Ardayda fasalkan lama helin.</p>
+                ) : (
+                  <table
+                    style={{
+                      width: "100%",
+                      borderCollapse: "collapse",
+                      fontSize: 13,
+                      minWidth: 560 + gradebook.subjects.length * 110,
+                    }}
+                  >
+                    <thead>
+                      <tr>
+                        <th style={thStyle}>Student Name</th>
+                        {gradebook.subjects.map((subj) => (
+                          <th key={subj} style={thStyle}>
+                            {subj}
+                          </th>
+                        ))}
+                        <th style={thStyle}>Total</th>
+                        <th style={thStyle}>Average</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {gradebook.rows.map((row, idx) => (
+                        <tr
+                          key={row.studentId}
+                          style={{
+                            background: idx % 2 === 0 ? "#fff" : "#FAFBFC",
+                          }}
+                        >
+                          <td style={{ ...tdStyle, fontWeight: 700, color: "#111827", position: "sticky", left: 0, background: idx % 2 === 0 ? "#fff" : "#FAFBFC" }}>
+                            {row.fullName}
+                          </td>
+                          {gradebook.subjects.map((subj) => {
+                            const cell = row.bySubject[subj];
+                            return (
+                              <td key={subj} style={tdStyle}>
+                                {cell ? `${cell.marks}/${cell.maxMarks}` : "—"}
+                              </td>
+                            );
+                          })}
+                          <td style={{ ...tdStyle, fontWeight: 700 }}>
+                            {row.totalMarks}/{row.totalMax}
+                          </td>
+                          <td style={tdStyle}>
+                            <span
+                              style={{
+                                background: row.average >= 50 ? "#DCFCE7" : "#FEE2E2",
+                                color: row.average >= 50 ? "#16A34A" : "#DC2626",
+                                fontSize: 12,
+                                fontWeight: 700,
+                                padding: "4px 12px",
+                                borderRadius: 20,
+                              }}
+                            >
+                              {row.average}%
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
             </div>
-          </div>
+          )}
         </div>
       </div>
-
-      <style>{`
-        input::placeholder { color: #6b6890; }
-        select option { background: #1e1a4a; color: #ffffff; }
-      `}</style>
     </div>
   );
 }
 
-const bellWrap = {
-  position: "relative",
-  width: 46,
-  height: 46,
-  borderRadius: 12,
-  background: "rgba(139,108,245,0.1)",
-  border: "1px solid rgba(139,108,245,0.3)",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-};
-
-const bellBadge = {
-  position: "absolute",
-  top: -6,
-  right: -6,
-  minWidth: 20,
-  height: 20,
-  borderRadius: "50%",
-  background: "#ef4444",
-  color: "#fff",
-  fontSize: 11,
+const thStyle = {
+  textAlign: "left",
   fontWeight: 700,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  padding: "0 4px",
+  fontSize: 12,
+  color: "#6B7280",
+  padding: "10px 14px",
+  borderBottom: "2px solid #E5E7EB",
+  whiteSpace: "nowrap",
+  background: "#F9FAFB",
 };
 
-const markAllBtn = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 8,
-  background: "rgba(255,255,255,0.03)",
-  border: "1.5px solid rgba(139,108,245,0.35)",
-  color: "#8b6cf5",
-  padding: "10px 16px",
-  borderRadius: 10,
-  cursor: "pointer",
-  fontWeight: 600,
-  fontSize: 13,
-};
-
-const searchWrap = {
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
-  width: 320,
-  padding: "0 14px",
-  borderRadius: 10,
-  border: "1.5px solid rgba(139,108,245,0.3)",
-  background: "rgba(255,255,255,0.02)",
-};
-
-const searchInput = {
-  flex: 1,
-  padding: "12px 0",
-  border: "none",
-  outline: "none",
-  background: "transparent",
-  color: "#e5e3f7",
-  fontSize: 14,
-};
-
-const roleSelect = {
-  padding: "0 14px",
-  borderRadius: 10,
-  border: "1.5px solid rgba(139,108,245,0.3)",
-  background: "rgba(255,255,255,0.02)",
-  color: "#e5e3f7",
-  fontSize: 14,
-  outline: "none",
-};
-
-const listCard = {
-  background: "linear-gradient(160deg,#1c1840,#211c48)",
-  borderRadius: 16,
-  padding: 16,
-  border: "1px solid rgba(255,255,255,0.05)",
-  maxHeight: 620,
-  overflowY: "auto",
-};
-
-const msgRow = {
-  display: "flex",
-  alignItems: "center",
-  gap: 10,
+const tdStyle = {
   padding: "12px 14px",
-  borderRadius: 12,
-  border: "1px solid",
-  cursor: "pointer",
-};
-
-const senderAvatar = {
-  width: 32,
-  height: 32,
-  borderRadius: "50%",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  color: "#fff",
-  fontWeight: 700,
-  fontSize: 13,
-  flexShrink: 0,
-};
-
-const senderAvatarLarge = {
-  width: 52,
-  height: 52,
-  borderRadius: "50%",
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  color: "#fff",
-  fontWeight: 700,
-  fontSize: 18,
-  flexShrink: 0,
-};
-
-const roleTag = {
-  background: "rgba(139,108,245,0.12)",
-  color: "#c4b5fd",
-  fontSize: 10.5,
-  padding: "3px 9px",
-  borderRadius: 20,
-  border: "1px solid rgba(139,108,245,0.25)",
-};
-
-const detailCard = {
-  background: "linear-gradient(160deg,#1c1840,#211c48)",
-  borderRadius: 16,
-  padding: 26,
-  border: "1px solid rgba(255,255,255,0.05)",
-  minHeight: 620,
-};
-
-const messageBody = {
-  color: "#c7c4e0",
-  fontSize: 14.5,
-  lineHeight: 1.7,
-  whiteSpace: "pre-wrap",
-};
-
-const pdfLink = {
-  display: "inline-flex",
-  alignItems: "center",
-  gap: 10,
-  marginTop: 22,
-  background: "rgba(139,108,245,0.1)",
-  border: "1px solid rgba(139,108,245,0.35)",
-  color: "#c4b5fd",
-  padding: "12px 18px",
-  borderRadius: 12,
-  textDecoration: "none",
-  fontWeight: 600,
-  fontSize: 13.5,
-};
-
-const deleteBtn = {
-  background: "rgba(239,68,68,0.12)",
-  border: "1px solid rgba(239,68,68,0.3)",
-  color: "#f87171",
-  width: 34,
-  height: 34,
-  borderRadius: 8,
-  display: "flex",
-  alignItems: "center",
-  justifyContent: "center",
-  cursor: "pointer",
+  borderBottom: "1px solid #F3F4F6",
+  color: "#374151",
+  whiteSpace: "nowrap",
 };
