@@ -423,4 +423,5 @@ const historyRow = {
   padding: "12px 16px",
   textDecoration: "none",
   cursor: "pointer",
+  minWidth: 0,
 };

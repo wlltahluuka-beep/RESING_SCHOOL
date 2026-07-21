@@ -19,6 +19,34 @@ import { BarChart3, Printer, Send, Lock } from "lucide-react";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 
+function ResultsStyles() {
+  return (
+    <style>{`
+      .res-layout { display: flex; min-height: 100vh; background: #05070D; }
+      .res-content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+      .res-body { padding: 0 20px 30px; }
+      .res-filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+      }
+      .res-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .res-table { width: 100%; border-collapse: collapse; margin-top: 12px; min-width: 480px; }
+
+      @media (max-width: 900px) {
+        .res-body { padding: 0 14px 90px; }
+        .res-panel { padding: 16px !important; border-radius: 16px !important; }
+        .res-filters-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+        .res-filters-grid button { width: 100%; justify-content: center; }
+      }
+
+      @media (max-width: 480px) {
+        .res-filters-grid { grid-template-columns: 1fr; }
+      }
+    `}</style>
+  );
+}
+
 export default function Results() {
   const [classes, setClasses] = useState([]);
   const [exams, setExams] = useState([]);
@@ -32,7 +60,6 @@ export default function Results() {
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  // Teacher photo, loo baahan yahay marka fariinta Admin loo diro
   const [teacherPhoto, setTeacherPhoto] = useState("");
 
   const teacherId = localStorage.getItem("teacherId") || "";
@@ -77,8 +104,6 @@ export default function Results() {
     }
   };
 
-  // Matches actual Firestore structure: teachers/{teacherId} document
-  // has a "classes" array field with { className, subject, ... } entries
   const loadClasses = async () => {
     try {
       if (!teacherId) {
@@ -111,9 +136,6 @@ export default function Results() {
     }
   };
 
-  // Exam-yada uu macalinkan soo diray fasalkan - ka soo qaad "messages"
-  // (waa halka Exams.jsx ku keydiyo exam-yada), oo tan ugu dambaysay
-  // marka hore ku soo bandhig
   const loadExamsForClass = async (className) => {
     try {
       const snap = await getDocs(
@@ -137,8 +159,6 @@ export default function Results() {
     }
   };
 
-  // Marka exam la doorto: soo qaad dhammaan ardayda class-ka, iyo haddii
-  // results horeba loo keydiyay exam-kan soo geli marks-ka jira
   const loadStudentsAndResults = async (className, examId) => {
     try {
       setLoading(true);
@@ -187,7 +207,6 @@ export default function Results() {
     return "F";
   };
 
-  // Dhis hal PDF A4 ah oo leh dhammaan ardayda: magac, ID iyo marks
   const buildSummaryPdf = (studentsWithMarks, exam) => {
     const pdf = new jsPDF({ unit: "pt", format: "a4" });
     const pageWidth = pdf.internal.pageSize.getWidth();
@@ -246,8 +265,6 @@ export default function Results() {
     return pdf;
   };
 
-  // Kaydi marks-ka results collection-ka, kadibna hal PDF A4 ah oo dhammaan
-  // ardayda ku jira u dir Admin, kadibna calaamadee exam-ka in la dhammeeyay
   const saveAndSendResults = async () => {
     if (!selectedClass || !selectedExam) {
       alert("Fadlan dooro Class-ka iyo Exam-ka");
@@ -295,7 +312,6 @@ export default function Results() {
         });
       }
 
-      // Dhis hal PDF A4 ah oo dhammaan ardayda ku jira, ku shub Storage
       const pdf = buildSummaryPdf(resultsForPdf, exam);
       const pdfBlob = pdf.output("blob");
       const storageRef = ref(
@@ -305,7 +321,6 @@ export default function Results() {
       await uploadBytes(storageRef, pdfBlob);
       const pdfUrl = await getDownloadURL(storageRef);
 
-      // Hal fariin oo keliya Admin loo diro, leh sax-gareynta iyo PDF-ga
       await addDoc(collection(db, "messages"), {
         senderName: teacherName,
         senderRole: "Teacher",
@@ -326,8 +341,6 @@ export default function Results() {
         createdAt: serverTimestamp(),
       });
 
-      // Calaamadee message-ka exam-ka asalka ah in results-kiisa la diray,
-      // si aan mar dambe loo soo bixin
       await setDoc(
         doc(db, "messages", selectedExam),
         { resultsSent: true },
@@ -352,15 +365,16 @@ export default function Results() {
   };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#05070D" }}>
+    <div className="res-layout">
+      <ResultsStyles />
       <Sidebar teacherName={teacherName} />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <div className="res-content">
         <Topbar teacherName={teacherName} />
 
-        <div style={{ padding: "0 20px 30px" }}>
+        <div className="res-body">
           {/* Filters */}
-          <div style={filterCard}>
+          <div className="res-panel" style={filterCard}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
               <div style={iconCircle}>
                 <BarChart3 size={20} color="#8B5CF6" />
@@ -368,7 +382,7 @@ export default function Results() {
               <h3 style={{ margin: 0, color: "#fff" }}>Results</h3>
             </div>
 
-            <div style={filtersGrid}>
+            <div className="res-filters-grid">
               <div>
                 <label style={label}>Class</label>
                 <select
@@ -449,7 +463,7 @@ export default function Results() {
           </div>
 
           {/* Results table */}
-          <div style={tableCard}>
+          <div className="res-panel" style={tableCard}>
             {loading ? (
               <p style={{ padding: 20, color: "#94A3B8" }}>Loading students...</p>
             ) : !selectedExam ? (
@@ -461,37 +475,39 @@ export default function Results() {
                 No students found for this class.
               </p>
             ) : (
-              <table style={table}>
-                <thead>
-                  <tr>
-                    <th style={th}>Name</th>
-                    <th style={th}>ID</th>
-                    <th style={th}>Marks</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {students.map((s) => (
-                    <tr key={s.id}>
-                      <td style={{ ...td, display: "flex", alignItems: "center", gap: 10 }}>
-                        <div style={avatar}>
-                          {(s.fullName || "?").charAt(0).toUpperCase()}
-                        </div>
-                        {s.fullName}
-                      </td>
-                      <td style={td}>{s.studentId}</td>
-                      <td style={td}>
-                        <input
-                          style={{ ...input, width: 90 }}
-                          type="number"
-                          disabled={isLocked}
-                          value={marks[s.id] || ""}
-                          onChange={(e) => setMark(s.id, e.target.value)}
-                        />
-                      </td>
+              <div className="res-table-wrap">
+                <table className="res-table">
+                  <thead>
+                    <tr>
+                      <th style={th}>Name</th>
+                      <th style={th}>ID</th>
+                      <th style={th}>Marks</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {students.map((s) => (
+                      <tr key={s.id}>
+                        <td style={{ ...td, display: "flex", alignItems: "center", gap: 10 }}>
+                          <div style={avatar}>
+                            {(s.fullName || "?").charAt(0).toUpperCase()}
+                          </div>
+                          {s.fullName}
+                        </td>
+                        <td style={td}>{s.studentId}</td>
+                        <td style={td}>
+                          <input
+                            style={{ ...input, width: 90 }}
+                            type="number"
+                            disabled={isLocked}
+                            value={marks[s.id] || ""}
+                            onChange={(e) => setMark(s.id, e.target.value)}
+                          />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>
@@ -517,11 +533,6 @@ const iconCircle = {
   justifyContent: "center",
   flexShrink: 0,
 };
-const filtersGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: 16,
-};
 const label = {
   display: "block",
   fontWeight: "bold",
@@ -545,23 +556,20 @@ const tableCard = {
   marginBottom: 20,
   overflow: "hidden",
 };
-const table = {
-  width: "100%",
-  borderCollapse: "collapse",
-  marginTop: 12,
-};
 const th = {
   textAlign: "left",
   padding: "12px 20px",
   borderBottom: "1px solid rgba(255,255,255,.08)",
   color: "#94A3B8",
   fontSize: 13,
+  whiteSpace: "nowrap",
 };
 const td = {
   padding: "12px 20px",
   borderBottom: "1px solid rgba(255,255,255,.05)",
   fontSize: 14,
   color: "#E5E7EB",
+  whiteSpace: "nowrap",
 };
 const avatar = {
   width: 32,
