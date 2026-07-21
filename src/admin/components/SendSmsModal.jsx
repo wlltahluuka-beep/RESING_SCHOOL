@@ -41,6 +41,8 @@ export default function SendSmsModal({ onClose }) {
   const [teachers, setTeachers] = useState([]);
   const [students, setStudents] = useState([]);
   const [targetId, setTargetId] = useState("");
+  const [teacherSearch, setTeacherSearch] = useState("");
+  const [studentSearch, setStudentSearch] = useState("");
   const [loadingLists, setLoadingLists] = useState(false);
   const [sending, setSending] = useState(false);
   const [result, setResult] = useState(null); // { successCount, failCount, results }
@@ -66,9 +68,34 @@ export default function SendSmsModal({ onClose }) {
     }
     loadPickerData();
     setTargetId("");
+    setTeacherSearch("");
+    setStudentSearch("");
     setResult(null);
     setErrorMsg("");
   }, [audience]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Filtered lists based on what the admin types in the search box.
+  // Teacher: searchable by full name OR username.
+  // Student: searchable by full name OR student ID.
+  const filteredTeachers = teachers.filter((t) => {
+    const q = teacherSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      (t.fullName || "").toLowerCase().includes(q) ||
+      (t.username || "").toLowerCase().includes(q) ||
+      (t.id || "").toLowerCase().includes(q)
+    );
+  });
+
+  const filteredStudents = students.filter((s) => {
+    const q = studentSearch.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      (s.fullName || "").toLowerCase().includes(q) ||
+      (s.studentId || "").toLowerCase().includes(q) ||
+      (s.id || "").toLowerCase().includes(q)
+    );
+  });
 
   async function handleSend() {
     setErrorMsg("");
@@ -214,17 +241,28 @@ export default function SendSmsModal({ onClose }) {
               <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 6, display: "block" }}>
                 Dooro Macalinka
               </label>
+              <input
+                type="text"
+                value={teacherSearch}
+                onChange={(e) => setTeacherSearch(e.target.value)}
+                placeholder="Ka raadi magaca ama username-ka macalinka..."
+                style={{ ...selectStyle, marginBottom: 8 }}
+              />
               <select
                 value={targetId}
                 onChange={(e) => setTargetId(e.target.value)}
                 style={selectStyle}
               >
                 <option value="">
-                  {loadingLists ? "Soo raraya..." : "-- Dooro macalin --"}
+                  {loadingLists
+                    ? "Soo raraya..."
+                    : filteredTeachers.length === 0
+                    ? "-- Lama helin macalin --"
+                    : "-- Dooro macalin --"}
                 </option>
-                {teachers.map((t) => (
+                {filteredTeachers.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.fullName || t.id} {t.subject ? `(${t.subject})` : ""}
+                    {t.fullName || t.id} {t.username ? `(@${t.username})` : ""} {t.subject ? `— ${t.subject}` : ""}
                   </option>
                 ))}
               </select>
@@ -236,17 +274,28 @@ export default function SendSmsModal({ onClose }) {
               <label style={{ fontSize: 13, fontWeight: 700, color: "#374151", marginBottom: 6, display: "block" }}>
                 Dooro Ardayga
               </label>
+              <input
+                type="text"
+                value={studentSearch}
+                onChange={(e) => setStudentSearch(e.target.value)}
+                placeholder="Ka raadi magaca ama Student ID-ga..."
+                style={{ ...selectStyle, marginBottom: 8 }}
+              />
               <select
                 value={targetId}
                 onChange={(e) => setTargetId(e.target.value)}
                 style={selectStyle}
               >
                 <option value="">
-                  {loadingLists ? "Soo raraya..." : "-- Dooro arday --"}
+                  {loadingLists
+                    ? "Soo raraya..."
+                    : filteredStudents.length === 0
+                    ? "-- Lama helin arday --"
+                    : "-- Dooro arday --"}
                 </option>
-                {students.map((s) => (
+                {filteredStudents.map((s) => (
                   <option key={s.id} value={s.id}>
-                    {s.fullName || s.id} {s.className ? `— Class ${s.className}` : ""}
+                    {s.fullName || s.id} {s.studentId ? `(ID: ${s.studentId})` : ""} {s.className ? `— Class ${s.className}` : ""}
                   </option>
                 ))}
               </select>
