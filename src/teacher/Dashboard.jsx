@@ -1,3 +1,4 @@
+// src/teacher/Dashboard.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase/firebase";

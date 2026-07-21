@@ -1,3 +1,4 @@
+// src/teacher/Sidebar.jsx
 import { NavLink, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import {

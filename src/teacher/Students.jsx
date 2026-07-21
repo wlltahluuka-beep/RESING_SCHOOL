@@ -1,3 +1,4 @@
+// src/teacher/Students.jsx
 import { useEffect, useState } from "react";
 import { db } from "../firebase/firebase";
 import { collection, getDocs, query, where, doc, getDoc } from "firebase/firestore";

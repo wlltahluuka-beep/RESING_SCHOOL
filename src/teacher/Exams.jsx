@@ -1,3 +1,4 @@
+// src/teacher/Exams.jsx
 import { useEffect, useState } from "react";
 import { db, storage } from "../firebase/firebase";
 import {
@@ -29,6 +30,35 @@ const subjects = [
   "Islamic Studies",
   "Social Studies",
 ];
+
+function ExamsStyles() {
+  return (
+    <style>{`
+      .ex-layout { display: flex; min-height: 100vh; background: #05070D; }
+      .ex-content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+      .ex-body { padding: 0 20px 30px; }
+      .ex-filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: 16px;
+      }
+      .ex-history-row { display: flex; align-items: center; gap: 14px; }
+
+      @media (max-width: 900px) {
+        .ex-body { padding: 0 14px 90px; }
+        .ex-panel { padding: 16px !important; border-radius: 16px !important; }
+        .ex-filters-grid { grid-template-columns: 1fr 1fr; gap: 12px; }
+        .ex-btn-primary { width: 100%; justify-content: center; }
+        .ex-history-row { padding: 12px !important; gap: 10px !important; }
+      }
+
+      @media (max-width: 480px) {
+        .ex-filters-grid { grid-template-columns: 1fr; }
+        .ex-history-row { flex-wrap: wrap; }
+      }
+    `}</style>
+  );
+}
 
 export default function Exams() {
   const [examName, setExamName] = useState("");
@@ -173,15 +203,16 @@ export default function Exams() {
   };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#05070D" }}>
+    <div className="ex-layout">
+      <ExamsStyles />
       <Sidebar teacherName={teacherName} />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <div className="ex-content">
         <Topbar teacherName={teacherName} />
 
-        <div style={{ padding: "0 20px 30px" }}>
+        <div className="ex-body">
           {/* Create Exam */}
-          <div style={filterCard}>
+          <div className="ex-panel" style={filterCard}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
               <div style={iconCircle}>
                 <FileEdit size={20} color="#8B5CF6" />
@@ -189,7 +220,7 @@ export default function Exams() {
               <h3 style={{ margin: 0, color: "#fff" }}>Create Exam</h3>
             </div>
 
-            <div style={filtersGrid}>
+            <div className="ex-filters-grid">
               <div>
                 <label style={label}>Class</label>
                 <select
@@ -252,7 +283,12 @@ export default function Exams() {
             </div>
 
             <div style={{ marginTop: 20 }}>
-              <button onClick={saveAndSendExam} disabled={saving} style={btnPrimary}>
+              <button
+                onClick={saveAndSendExam}
+                disabled={saving}
+                className="ex-btn-primary"
+                style={btnPrimary}
+              >
                 {saving ? (
                   "Sending..."
                 ) : (
@@ -266,7 +302,7 @@ export default function Exams() {
           </div>
 
           {/* Exam history - dhammaan PDF-yada iyo taariiqda la diray */}
-          <div style={tableCard}>
+          <div className="ex-panel" style={tableCard}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "18px 20px 0" }}>
               <div style={iconCircle}>
                 <FileText size={20} color="#22C55E" />
@@ -288,6 +324,7 @@ export default function Exams() {
                     href={exam.fileUrl}
                     target="_blank"
                     rel="noreferrer"
+                    className="ex-history-row"
                     style={historyRow}
                   >
                     <div style={iconCircleSmall}>
@@ -340,11 +377,6 @@ const iconCircleSmall = {
   alignItems: "center",
   justifyContent: "center",
   flexShrink: 0,
-};
-const filtersGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
-  gap: 16,
 };
 const label = {
   display: "block",

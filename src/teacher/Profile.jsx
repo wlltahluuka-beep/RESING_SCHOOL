@@ -1,3 +1,4 @@
+// src/teacher/Profile.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase/firebase";
@@ -6,6 +7,24 @@ import { LogOut } from "lucide-react";
 
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+
+function ProfileStyles() {
+  return (
+    <style>{`
+      .pf-layout { display: flex; min-height: 100vh; background: #05070D; }
+      .pf-content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+      .pf-body { padding: 0 20px 30px; max-width: 640px; box-sizing: border-box; }
+      .pf-photo-row { display: flex; align-items: center; gap: 20px; margin-bottom: 20px; flex-wrap: wrap; }
+
+      @media (max-width: 900px) {
+        .pf-body { padding: 0 14px 90px; max-width: 100%; }
+        .pf-section { padding: 16px !important; border-radius: 16px !important; }
+        .pf-photo-row { gap: 14px !important; }
+        .pf-btn-primary { width: 100%; text-align: center; justify-content: center; }
+      }
+    `}</style>
+  );
+}
 
 export default function Profile() {
   const navigate = useNavigate();
@@ -134,21 +153,22 @@ export default function Profile() {
   const teacherName = localStorage.getItem("teacherName") || "Teacher";
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#05070D" }}>
+    <div className="pf-layout">
+      <ProfileStyles />
       <Sidebar teacherName={teacherName} />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <div className="pf-content">
         <Topbar teacherName={teacherName} />
 
-        <div style={{ padding: "0 20px 30px", maxWidth: 640 }}>
+        <div className="pf-body">
           {loading ? (
             <p style={{ color: "#94A3B8" }}>Loading profile...</p>
           ) : (
             <>
-              <div style={section}>
+              <div className="pf-section" style={section}>
                 <h3 style={sectionTitle}>Photo & Username</h3>
 
-                <div style={photoRow}>
+                <div className="pf-photo-row">
                   {photoUrl ? (
                     <img src={photoUrl} alt="Profile" style={photoImg} />
                   ) : (
@@ -178,13 +198,14 @@ export default function Profile() {
                 <button
                   onClick={saveProfile}
                   disabled={savingProfile}
+                  className="pf-btn-primary"
                   style={{ ...btnPrimary, marginTop: 16 }}
                 >
                   {savingProfile ? "Saving..." : "Save Profile"}
                 </button>
               </div>
 
-              <div style={section}>
+              <div className="pf-section" style={section}>
                 <h3 style={sectionTitle}>Change Password</h3>
 
                 <label style={label}>Current Password</label>
@@ -214,6 +235,7 @@ export default function Profile() {
                 <button
                   onClick={changePassword}
                   disabled={savingPassword}
+                  className="pf-btn-primary"
                   style={{ ...btnPrimary, marginTop: 16 }}
                 >
                   {savingPassword ? "Saving..." : "Change Password"}
@@ -242,12 +264,6 @@ const section = {
 const sectionTitle = {
   marginTop: 0,
   color: "#fff",
-};
-const photoRow = {
-  display: "flex",
-  alignItems: "center",
-  gap: 20,
-  marginBottom: 20,
 };
 const photoImg = {
   width: 80,
@@ -317,4 +333,5 @@ const btnLogout = {
   justifyContent: "center",
   gap: 10,
   marginBottom: 30,
+  boxSizing: "border-box",
 };

@@ -1,3 +1,4 @@
+// src/teacher/Topbar.jsx
 import { useRef, useState } from "react";
 import { Search, Bell, Menu, Mail, MailOpen, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";

@@ -1,8 +1,30 @@
+// src/teacher/Messages.jsx
 import { useState } from "react";
 import { Mail, MailOpen, X } from "lucide-react";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import { useMessages } from "../context/MessagesContext"; // Hubi path-kan
+
+function MessagesStyles() {
+  return (
+    <style>{`
+      .msg-layout { display: flex; min-height: 100vh; background: #05070D; }
+      .msg-content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+      .msg-body { padding: 0 20px 30px; }
+      .msg-row { display: flex; align-items: flex-start; gap: 14px; }
+      .msg-modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,.55); display: flex; align-items: center; justify-content: center; z-index: 2000; padding: 16px; box-sizing: border-box; }
+      .msg-modal { background: #0B1120; border: 1px solid rgba(255,255,255,.08); border-radius: 20px; padding: 28px; width: min(480px, 90vw); box-shadow: 0 20px 60px rgba(0,0,0,.5); max-height: 85vh; overflow-y: auto; box-sizing: border-box; }
+
+      @media (max-width: 900px) {
+        .msg-body { padding: 0 14px 90px; }
+        .msg-panel { padding: 16px !important; border-radius: 16px !important; }
+        .msg-row { padding: 12px 14px !important; gap: 10px !important; }
+        .msg-header-row { flex-direction: column; align-items: flex-start !important; gap: 10px; }
+        .msg-modal { padding: 20px; width: 100%; }
+      }
+    `}</style>
+  );
+}
 
 export default function Messages() {
   const [teacherName] = useState(localStorage.getItem("teacherName") || "Teacher");
@@ -21,14 +43,16 @@ export default function Messages() {
   };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#05070D" }}>
+    <div className="msg-layout">
+      <MessagesStyles />
       <Sidebar teacherName={teacherName} />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <div className="msg-content">
         <Topbar teacherName={teacherName} />
 
-        <div style={{ padding: "0 20px 30px" }}>
+        <div className="msg-body">
           <div
+            className="msg-panel"
             style={{
               background: "#0B1120",
               borderRadius: 20,
@@ -37,11 +61,14 @@ export default function Messages() {
             }}
           >
             <div
+              className="msg-header-row"
               style={{
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "space-between",
                 marginBottom: 20,
+                flexWrap: "wrap",
+                gap: 10,
               }}
             >
               <h2 style={{ margin: 0, color: "#fff" }}>Fariimaha</h2>
@@ -72,10 +99,8 @@ export default function Messages() {
                   <div
                     key={m.id}
                     onClick={() => handleOpen(m)}
+                    className="msg-row"
                     style={{
-                      display: "flex",
-                      alignItems: "flex-start",
-                      gap: 14,
                       padding: "16px 18px",
                       borderRadius: 15,
                       cursor: "pointer",
@@ -113,6 +138,7 @@ export default function Messages() {
                           justifyContent: "space-between",
                           alignItems: "center",
                           gap: 8,
+                          flexWrap: "wrap",
                         }}
                       >
                         <span
@@ -162,35 +188,15 @@ export default function Messages() {
 
       {/* ---- Modal ---- */}
       {openMsg && (
-        <div
-          onClick={() => setOpenMsg(null)}
-          style={{
-            position: "fixed",
-            inset: 0,
-            background: "rgba(0,0,0,.55)",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            zIndex: 2000,
-          }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              background: "#0B1120",
-              border: "1px solid rgba(255,255,255,.08)",
-              borderRadius: 20,
-              padding: 28,
-              width: "min(480px, 90vw)",
-              boxShadow: "0 20px 60px rgba(0,0,0,.5)",
-            }}
-          >
+        <div onClick={() => setOpenMsg(null)} className="msg-modal-overlay">
+          <div onClick={(e) => e.stopPropagation()} className="msg-modal">
             <div
               style={{
                 display: "flex",
                 justifyContent: "space-between",
                 alignItems: "flex-start",
                 marginBottom: 14,
+                gap: 10,
               }}
             >
               <h2 style={{ margin: 0, color: "#fff", fontSize: 20 }}>
@@ -198,7 +204,7 @@ export default function Messages() {
               </h2>
               <button
                 onClick={() => setOpenMsg(null)}
-                style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8" }}
+                style={{ background: "none", border: "none", cursor: "pointer", color: "#94A3B8", flexShrink: 0 }}
               >
                 <X size={22} />
               </button>
