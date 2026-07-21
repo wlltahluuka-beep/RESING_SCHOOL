@@ -1,4 +1,4 @@
- // src/teacher/Dashboard.jsx
+// src/teacher/Dashboard.jsx
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { db } from "../firebase/firebase";
@@ -25,8 +25,8 @@ import { useMessages } from "../context/MessagesContext"; // Hubi path-kan
 function DashboardStyles() {
   return (
     <style>{`
-      .td-layout { display: flex; min-height: 100vh; background: #05070D; }
-      .td-content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+      .td-layout { display: flex; min-height: 100vh; width: 100%; background: #05070D; }
+      .td-content { flex: 1; display: flex; flex-direction: column; min-width: 0; width: 100%; }
       .td-body { padding: 0 20px 30px; }
       .td-stat-grid {
         display: grid;
