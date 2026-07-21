@@ -6,6 +6,7 @@ import { collection, getDocs } from "firebase/firestore";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 import DashboardCard from "../components/DashboardCard";
+import SendSmsModal from "../components/SendSmsModal";
 import {
   LineChart,
   Line,
@@ -133,6 +134,7 @@ export default function Dashboard() {
   });
 
   const [loading, setLoading] = useState(true);
+  const [smsModalOpen, setSmsModalOpen] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -381,26 +383,50 @@ export default function Dashboard() {
             <p style={{ margin: "10px 0 20px", fontSize: 14, opacity: 0.9, maxWidth: 420 }}>
               Smart Management, Better Education, Brighter Future.
             </p>
-            <button
-              onClick={() => navigate("/admin/reports")}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "12px 22px",
-                borderRadius: 14,
-                border: "none",
-                background: "#fff",
-                color: "#166534",
-                fontWeight: 700,
-                fontSize: 13.5,
-                cursor: "pointer",
-              }}
-            >
-              Explore Dashboard
-              <Send size={15} />
-            </button>
+            <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+              <button
+                onClick={() => navigate("/admin/reports")}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "12px 22px",
+                  borderRadius: 14,
+                  border: "none",
+                  background: "#fff",
+                  color: "#166534",
+                  fontWeight: 700,
+                  fontSize: 13.5,
+                  cursor: "pointer",
+                }}
+              >
+                Explore Dashboard
+                <Send size={15} />
+              </button>
+
+              <button
+                onClick={() => setSmsModalOpen(true)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 8,
+                  padding: "12px 22px",
+                  borderRadius: 14,
+                  border: "1.5px solid rgba(255,255,255,0.5)",
+                  background: "rgba(255,255,255,0.12)",
+                  color: "#fff",
+                  fontWeight: 700,
+                  fontSize: 13.5,
+                  cursor: "pointer",
+                }}
+              >
+                Send SMS
+                <Send size={15} />
+              </button>
+            </div>
           </div>
+
+          {smsModalOpen && <SendSmsModal onClose={() => setSmsModalOpen(false)} />}
 
           {/* Stat cards */}
           <div
