@@ -11,6 +11,7 @@ import {
   CalendarCheck,
   ClipboardList,
   CalendarDays,
+  FileEdit,
   HelpCircle,
 } from "lucide-react";
 
@@ -25,6 +26,7 @@ const menus = [
   { name: "Attendance", icon: CalendarCheck, path: "/admin/attendance" },
   { name: "Exams", icon: ClipboardList, path: "/admin/exams" },
   { name: "Timetable", icon: CalendarDays, path: "/admin/timetable" },
+  { name: "Exam Timetable", icon: FileEdit, path: "/admin/exam-timetable" },
   { name: "Add Cashier", icon: Wallet, path: "/admin/add-cashier" },
   { name: "Messages", icon: MessageCircle, path: "/admin/messages" },
   { name: "Reports", icon: BarChart3, path: "/admin/reports" },

@@ -14,6 +14,7 @@ import Classes from "./admin/pages/Classes";
 import Attendance from "./admin/pages/Attendance";
 import Exams from "./admin/pages/Exams";
 import Timetable from "./admin/pages/Timetable";
+import ExamTimetable from "./admin/pages/ExamTimetable";
 import Reports from "./admin/pages/Reports";
 import Settings from "./admin/pages/Settings";
 import BulkRegistration from "./admin/pages/BulkRegistration";
@@ -75,6 +76,7 @@ function App() {
         <Route path="/admin/settings" element={<Settings />} />
         <Route path="/admin/messages" element={<Messages />} />
         <Route path="/admin/timetable" element={<Timetable />} />
+        <Route path="/admin/exam-timetable" element={<ExamTimetable />} />
 
         {/* Dhammaan boggagga Teacher waxay ku jiraan MessagesProvider hal mar,
             si Sidebar/Topbar/Messages ay isku wadaagaan xogta fariimaha */}
