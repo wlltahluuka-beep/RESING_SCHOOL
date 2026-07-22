@@ -6,11 +6,11 @@ import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 
 /* ===========================================================
-   RISING STAR SCHOOL
-   (Project ID = one-click-online)
+   RISING STAR SCHOOL (NEW DATABASE)
+   Project ID = one-click-online
 =========================================================== */
 
-const firebaseConfig = {
+const risingConfig = {
   apiKey: "AIzaSyBXFegVGIYVk02zY6Ks3DhcoWjomNw_ht0",
   authDomain: "one-click-online.firebaseapp.com",
   projectId: "one-click-online",
@@ -19,7 +19,7 @@ const firebaseConfig = {
   appId: "1:988928725446:web:81f45c1187bc048343a2c7",
 };
 
-const app = initializeApp(firebaseConfig);
+const risingApp = initializeApp(risingConfig);
 
 /* ===========================================================
    GALLAD TECH STORAGE
@@ -36,8 +36,13 @@ const galladConfig = {
 
 const galladApp = initializeApp(galladConfig, "gallad");
 
-export const db = getFirestore(app);
-export const auth = getAuth(app);
+/* ===========================================================
+   EXPORTS
+=========================================================== */
+
+export const db = getFirestore(risingApp);
+export const auth = getAuth(risingApp);
+
 export const storage = getStorage(galladApp);
 
-export default app;
+export default risingApp;
