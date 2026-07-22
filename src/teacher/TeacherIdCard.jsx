@@ -9,7 +9,7 @@
 const SCHOOL = {
   name1: "RISING STAR",
   name2: "SCHOOL",
-  tagline: "Excellence Today, Leaders Tomorrow",
+  tagline: "Teaching Today, Transforming Tomorrow",
   website: "resingstarschools.com",
   location: "Mogadishu, Somalia",
   noticeTell: "+252 61 7390261",
@@ -507,9 +507,9 @@ function CardFront({ teacher, teacherUsername }) {
             </div>
             <div className="tidc-field-row">
               <span className="tidc-field-icon">👥</span>
-              <span className="tidc-field-label">FATHER'S NAME</span>
+              <span className="tidc-field-label">MOTHER'S NAME</span>
               <span className="tidc-field-colon">:</span>
-              <span className="tidc-field-value">{teacher?.fatherName || "—"}</span>
+              <span className="tidc-field-value">{teacher?.motherName || "—"}</span>
             </div>
             <div className="tidc-field-row">
               <span className="tidc-field-icon">📞</span>
