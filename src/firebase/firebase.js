@@ -10,16 +10,15 @@ import { getStorage } from "firebase/storage";
    Project ID = one-click-online
 =========================================================== */
 
-const risingConfig = {
-  apiKey: "AIzaSyBXFegVGIYVk02zY6Ks3DhcoWjomNw_ht0",
-  authDomain: "one-click-online.firebaseapp.com",
-  projectId: "one-click-online",
-  storageBucket: "one-click-online.firebasestorage.app",
+const firebaseConfig = {
+  apiKey: "AIzaSyBXFegVGIyVk02zY6Ks3DhcoWjomNw_ht0",
+  authDomain: "one-click-onilne.firebaseapp.com",
+  projectId: "one-click-onilne",
+  storageBucket: "one-click-onilne.firebasestorage.app",
   messagingSenderId: "988928725446",
-  appId: "1:988928725446:web:81f45c1187bc048343a2c7",
+  appId: "1:988928725446:web:64ce641d4da19b7643a2c7",
+  measurementId: "G-PKTR17K6MX"
 };
-
-const risingApp = initializeApp(risingConfig);
 
 /* ===========================================================
    GALLAD TECH STORAGE
