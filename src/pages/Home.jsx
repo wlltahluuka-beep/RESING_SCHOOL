@@ -48,14 +48,23 @@ const FEATURES = [
   { emoji: "🎧", title: "24/7 Support", desc: "We're here to help you anytime" },
 ];
 
+// Admin contact info — waxaa loo isticmaalaa "Need Help?" menu-ga
+const SUPPORT_WHATSAPP = "252617390261"; // international format, no + or leading 0
+const SUPPORT_EMAIL = "risingstar0261@gmail.com";
+
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
   const menuRef = useRef(null);
+  const helpRef = useRef(null);
 
   useEffect(() => {
     function handleClickOutside(e) {
       if (menuRef.current && !menuRef.current.contains(e.target)) {
         setMenuOpen(false);
+      }
+      if (helpRef.current && !helpRef.current.contains(e.target)) {
+        setHelpOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -74,10 +83,32 @@ export default function Home() {
         </div>
 
         <div className="header-actions">
-          <a className="help-pill" href="#help">
-            <span className="help-icon">?</span>
-            Need Help?
-          </a>
+          <div className="menu-wrap" ref={helpRef}>
+            <button
+              type="button"
+              className="help-pill"
+              onClick={() => setHelpOpen((v) => !v)}
+            >
+              <span className="help-icon">?</span>
+              Need Help?
+            </button>
+
+            {helpOpen && (
+              <div className="dots-menu help-menu">
+                <a
+                  href={`https://wa.me/${SUPPORT_WHATSAPP}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="dots-menu-item"
+                >
+                  💬 WhatsApp: 0{SUPPORT_WHATSAPP.slice(3)}
+                </a>
+                <a href={`mailto:${SUPPORT_EMAIL}`} className="dots-menu-item">
+                  📧 {SUPPORT_EMAIL}
+                </a>
+              </div>
+            )}
+          </div>
 
           <div className="menu-wrap" ref={menuRef}>
             <button
