@@ -178,7 +178,7 @@ function CardStyles() {
       }
       .tidc-field-row {
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         gap: 8px;
         font-size: 12px;
       }
@@ -201,14 +201,18 @@ function CardStyles() {
         letter-spacing: 0.2px;
         white-space: nowrap;
         font-size: 11px;
+        flex-shrink: 0;
+        padding-top: 1px;
       }
-      .tidc-field-colon { color: #16202b; font-weight: 700; }
+      .tidc-field-colon { color: #16202b; font-weight: 700; flex-shrink: 0; padding-top: 1px; }
       .tidc-field-value {
         font-weight: 700;
         color: #1c6b3a;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
+        overflow-wrap: break-word;
+        word-break: break-word;
+        white-space: normal;
+        line-height: 1.25;
+        min-width: 0;
       }
 
       .tidc-photo-wrap {
@@ -464,6 +468,23 @@ function CardFront({ teacher, teacherUsername }) {
     ? teacher.subjects.join(", ")
     : teacher?.subject || "—";
 
+  // Firestore stores the mother's name under a few possible keys
+  // depending on how the record was created ("matherName" is a typo
+  // that exists in some older documents, "parentName" is used in
+  // others). Fall back through all of them so the card always shows
+  // the real value instead of "—".
+  const motherNameText =
+    teacher?.motherName || teacher?.matherName || teacher?.parentName || "—";
+
+  // Show the teacher's complete name — never truncate it. If it's
+  // stored as separate first/last fields, join them; otherwise fall
+  // back to fullName / name as-is.
+  const fullNameText =
+    teacher?.fullName ||
+    teacher?.name ||
+    [teacher?.firstName, teacher?.lastName].filter(Boolean).join(" ") ||
+    "—";
+
   const qrValue = encodeURIComponent(`https://${SCHOOL.website}`);
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=0&data=${qrValue}`;
 
@@ -503,19 +524,19 @@ function CardFront({ teacher, teacherUsername }) {
               <span className="tidc-field-icon">👤</span>
               <span className="tidc-field-label">TEACHER NAME</span>
               <span className="tidc-field-colon">:</span>
-              <span className="tidc-field-value">{teacher?.fullName || "—"}</span>
+              <span className="tidc-field-value">{fullNameText}</span>
             </div>
             <div className="tidc-field-row">
               <span className="tidc-field-icon">👥</span>
               <span className="tidc-field-label">MOTHER'S NAME</span>
               <span className="tidc-field-colon">:</span>
-              <span className="tidc-field-value">{teacher?.motherName || "—"}</span>
+              <span className="tidc-field-value">{motherNameText}</span>
             </div>
             <div className="tidc-field-row">
               <span className="tidc-field-icon">📞</span>
               <span className="tidc-field-label">PHONE NUMBER</span>
               <span className="tidc-field-colon">:</span>
-              <span className="tidc-field-value">{teacher?.phone || "—"}</span>
+              <span className="tidc-field-value">{teacher?.phone || teacher?.phoneNumber || "—"}</span>
             </div>
             <div className="tidc-field-row">
               <span className="tidc-field-icon">📘</span>
@@ -533,7 +554,7 @@ function CardFront({ teacher, teacherUsername }) {
 
           <div className="tidc-photo-wrap">
             {teacher?.teacherPhoto ? (
-              <img className="tidc-photo" src={teacher.teacherPhoto} alt={teacher.fullName || "Teacher"} />
+              <img className="tidc-photo" src={teacher.teacherPhoto} alt={fullNameText} />
             ) : (
               <div className="tidc-photo-placeholder">No Photo</div>
             )}
