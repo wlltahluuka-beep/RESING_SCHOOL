@@ -1,6 +1,10 @@
 // src/teacher/Sidebar.jsx
+// On mobile (<= 900px) this whole sidebar — including its old mobile
+// hamburger topbar and drawer — is hidden. Navigation on mobile is
+// handled instead by MobileBottomNav.jsx, matching the student-portal
+// pattern shown in the reference screenshot.
+
 import { NavLink, useNavigate } from "react-router-dom";
-import { useState } from "react";
 import {
   LayoutDashboard,
   CalendarCheck2,
@@ -10,8 +14,6 @@ import {
   Mail,
   User,
   LogOut,
-  Menu,
-  X,
 } from "lucide-react";
 import { useMessages } from "../context/MessagesContext"; // Hubi path-kan
 
@@ -28,45 +30,11 @@ const menus = [
 function SidebarStyles() {
   return (
     <style>{`
-      .tsb-mobile-topbar { display: none; }
-      .tsb-overlay { display: none; }
-
+      /* Bottom tab bar (MobileBottomNav) fully replaces this sidebar on
+         mobile, so hide it completely there instead of turning it into
+         a drawer — this is what was showing wrong in the screenshot. */
       @media (max-width: 900px) {
-        /* Sidebar-ka desktop-ka waa la qariyaa gabi ahaanba marka uusan open ahayn,
-           si uusan u qabsan meel ka mid ah bogga (dhibaatada sawirka 1) */
-        .tsb-aside {
-          display: none;
-          position: fixed;
-          top: 0;
-          left: 0;
-          height: 100vh;
-          z-index: 60;
-          width: 260px !important;
-          box-shadow: 0 0 40px rgba(0,0,0,.5);
-        }
-        .tsb-aside.open {
-          display: flex;
-        }
-        .tsb-mobile-topbar {
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          gap: 12px;
-          padding: 14px 16px;
-          background: #0B1120;
-          border-bottom: 1px solid rgba(255,255,255,.08);
-          position: sticky;
-          top: 0;
-          z-index: 40;
-        }
-        .tsb-overlay {
-          display: block;
-          position: fixed;
-          inset: 0;
-          background: rgba(0,0,0,.55);
-          z-index: 50;
-        }
-        .tsb-close-btn { display: flex !important; }
+        .tsb-aside { display: none !important; }
       }
     `}</style>
   );
@@ -75,7 +43,6 @@ function SidebarStyles() {
 export default function Sidebar({ teacherName = "Teacher" }) {
   const navigate = useNavigate();
   const { unreadCount } = useMessages();
-  const [open, setOpen] = useState(false);
 
   const logout = () => {
     localStorage.removeItem("teacherId");
@@ -84,66 +51,12 @@ export default function Sidebar({ teacherName = "Teacher" }) {
     navigate("/login/teacher");
   };
 
-  const closeMenu = () => setOpen(false);
-
   return (
     <>
       <SidebarStyles />
 
-      {/* Mobile top bar with hamburger */}
-      <div className="tsb-mobile-topbar">
-        <button
-          onClick={() => setOpen(true)}
-          style={{
-            background: "transparent",
-            border: "1px solid rgba(255,255,255,.15)",
-            borderRadius: 10,
-            color: "#fff",
-            padding: 8,
-            display: "flex",
-            cursor: "pointer",
-          }}
-        >
-          <Menu size={20} />
-        </button>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <div
-            style={{
-              width: 34,
-              height: 34,
-              borderRadius: 10,
-              background: "linear-gradient(135deg,#6D5DF0,#8B5CF6)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 16,
-              flexShrink: 0,
-            }}
-          >
-            🏫
-          </div>
-          <div
-            style={{
-              color: "#fff",
-              fontWeight: 700,
-              fontSize: 14,
-              whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              maxWidth: 160,
-            }}
-          >
-            {teacherName}
-          </div>
-        </div>
-        <div style={{ width: 36 }} />
-      </div>
-
-      {/* Overlay for mobile drawer */}
-      {open && <div className="tsb-overlay" onClick={closeMenu} />}
-
       <aside
-        className={`tsb-aside${open ? " open" : ""}`}
+        className="tsb-aside"
         style={{
           width: 270,
           minHeight: "100vh",
@@ -161,7 +74,6 @@ export default function Sidebar({ teacherName = "Teacher" }) {
               padding: 25,
               display: "flex",
               alignItems: "center",
-              justifyContent: "space-between",
               gap: 15,
             }}
           >
@@ -197,21 +109,6 @@ export default function Sidebar({ teacherName = "Teacher" }) {
                 <small style={{ color: "#94A3B8" }}>Teacher Panel</small>
               </div>
             </div>
-
-            <button
-              onClick={closeMenu}
-              className="tsb-close-btn"
-              style={{
-                background: "transparent",
-                border: "none",
-                color: "#94A3B8",
-                cursor: "pointer",
-                display: "none",
-                flexShrink: 0,
-              }}
-            >
-              <X size={22} />
-            </button>
           </div>
 
           <div style={{ padding: "10px 18px", overflowY: "auto" }}>
@@ -223,7 +120,6 @@ export default function Sidebar({ teacherName = "Teacher" }) {
                 <NavLink
                   key={item.path}
                   to={item.path}
-                  onClick={closeMenu}
                   style={({ isActive }) => ({
                     display: "flex",
                     alignItems: "center",

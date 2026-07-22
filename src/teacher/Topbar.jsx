@@ -21,6 +21,17 @@ function TopbarStyles() {
         gap: 16px;
       }
       .tb-left { display: flex; align-items: center; gap: 20px; min-width: 0; }
+      .tb-logo {
+        width: 44px;
+        height: 44px;
+        border-radius: 12px;
+        background: linear-gradient(135deg,#6D5DF0,#8B5CF6);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        flex-shrink: 0;
+      }
       .tb-title { margin: 0; font-size: 28px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .tb-subtitle { margin: 5px 0 0; color: #94A3B8; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .tb-search {
@@ -37,16 +48,30 @@ function TopbarStyles() {
       .tb-right { display: flex; align-items: center; gap: 18px; flex-shrink: 0; }
       .tb-dropdown { width: 360px; max-width: 90vw; }
 
+      /* Matches the student-portal mobile header: rounded card removed,
+         compact logo + "Rising School / Teacher Portal" + bell only. */
       @media (max-width: 900px) {
-        .tb-wrap { margin: 14px; padding: 0 16px; height: auto; min-height: 74px; }
-        .tb-title { font-size: 20px; }
+        .tb-wrap {
+          margin: 0;
+          border-radius: 0;
+          padding: 14px 16px;
+          height: auto;
+          min-height: 68px;
+          border-bottom: 1px solid rgba(255,255,255,.08);
+          position: sticky;
+          top: 0;
+          z-index: 40;
+        }
+        .tb-logo { display: flex; }
+        .tb-title { font-size: 16px; }
         .tb-subtitle { display: none; }
         .tb-search { display: none; }
         .tb-right { gap: 10px; }
       }
 
       @media (max-width: 480px) {
-        .tb-wrap { flex-wrap: wrap; }
+        .tb-wrap { flex-wrap: nowrap; }
+        .tb-title { font-size: 15px; }
       }
     `}</style>
   );
@@ -78,7 +103,8 @@ export default function Topbar({ teacherName = "Teacher" }) {
       <div className="tb-wrap">
         {/* LEFT */}
         <div className="tb-left">
-          <div>
+          <div className="tb-logo">🏫</div>
+          <div style={{ minWidth: 0 }}>
             <h2 className="tb-title">Welcome, {teacherName} 👋</h2>
             <p className="tb-subtitle">
               Here's what's happening in your classes today.

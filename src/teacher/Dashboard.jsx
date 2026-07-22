@@ -20,6 +20,7 @@ import {
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import TeacherIdCard from "./TeacherIdCard";
+import MobileBottomNav from "./MobileBottomNav";
 import { useMessages } from "../context/MessagesContext"; // Hubi path-kan
 
 function DashboardStyles() {
@@ -43,6 +44,10 @@ function DashboardStyles() {
       .td-attendance-row { display: flex; align-items: center; gap: 24px; flex-wrap: wrap; }
 
       @media (max-width: 900px) {
+        /* Bottom tab bar takes over navigation on mobile, so the old
+           sidebar is fully hidden here (handled in Sidebar.jsx itself)
+           and page content gets extra bottom padding so the fixed bar
+           never overlaps the last section. */
         .td-body { padding: 0 14px 90px; }
         .td-stat-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
         .td-panel { padding: 16px !important; border-radius: 16px !important; }
@@ -494,6 +499,9 @@ export default function Dashboard() {
           </div>
         )}
       </div>
+
+      {/* Bottom tab bar — mobile only (hidden via CSS on desktop) */}
+      <MobileBottomNav />
     </div>
   );
 }
