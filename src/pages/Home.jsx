@@ -78,7 +78,7 @@ export default function Home() {
           <img src={logo} className="brand-logo" alt="Rising School logo" />
           <div className="brand-text">
             <span className="brand-name">RISING SCHOOL</span>
-            <span className="brand-tagline">School Management ERP System</span>
+            <span className="brand-tagline">School Management  System</span>
           </div>
         </div>
 
@@ -135,7 +135,7 @@ export default function Home() {
         <div className="hero-copy">
           <p className="hero-eyebrow">Welcome to</p>
           <h1 className="hero-title">RISING SCHOOL</h1>
-          <h2 className="hero-subtitle">School Management ERP System</h2>
+          <h2 className="hero-subtitle">School Management  System</h2>
           <div className="hero-rule" />
           <p className="hero-lede">
             A complete solution to manage your school efficiently.

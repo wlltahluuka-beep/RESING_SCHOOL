@@ -22,6 +22,7 @@ import {
   Lock,
   Camera,
   Loader2,
+  Clock,
 } from "lucide-react";
 
 const classOptions = ["1", "2", "3", "4", "5", "6", "7", "8", "F1", "F2", "F3", "F4"];
@@ -30,6 +31,7 @@ export default function AddStudent() {
   const [student, setStudent] = useState({
     fullName: "",
     className: "",
+    shift: "",
     monthlyFee: "",
     parentPhone: "",
     studentPhone: "",
@@ -113,6 +115,7 @@ export default function AddStudent() {
         studentId,
         fullName: student.fullName,
         className: student.className,
+        shift: student.shift,
         monthlyFee: student.monthlyFee,
         parentPhone: student.parentPhone,
         studentPhone: student.studentPhone,
@@ -148,6 +151,7 @@ export default function AddStudent() {
       setStudent({
         fullName: "",
         className: "",
+        shift: "",
         monthlyFee: "",
         parentPhone: "",
         studentPhone: "",
@@ -241,6 +245,19 @@ export default function AddStudent() {
                   {c}
                 </option>
               ))}
+            </select>
+          </Field>
+
+          <Field icon={Clock} label="Shift">
+            <select
+              style={input}
+              name="shift"
+              value={student.shift}
+              onChange={handleChange}
+            >
+              <option value="">Select Shift</option>
+              <option value="Morning">🌅 Morning</option>
+              <option value="Afternoon">🌇 Afternoon</option>
             </select>
           </Field>
 

@@ -1,3 +1,4 @@
+//src/admin/components/statminicard.jsx
 export default function StatMiniCard({ title, subtitle, value, trend, iconBg, icon, lineColor }) {
   const isUp = trend >= 0;
   const wavePath = "M0,22 Q10,8 20,18 T40,14 T60,20 T80,6 T100,16";

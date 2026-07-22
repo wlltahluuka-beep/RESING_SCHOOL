@@ -101,7 +101,7 @@ export default function Sidebar() {
               RESING SCHOOL
             </h2>
             <small style={{ color: "#9CA3AF", fontSize: 11.5 }}>
-              School Management ERP System
+              School Management  System
             </small>
           </div>
         </div>

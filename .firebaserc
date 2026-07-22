@@ -1,5 +1,7 @@
 {
   "projects": {
-    "default": "resing-school-erp"
-  }
+    "default": "one-click-onilne"
+  },
+  "targets": {},
+  "etags": {}
 }

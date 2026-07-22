@@ -1,3 +1,4 @@
+//src/admin/components/MessagesCard.jsx
 import { useEffect, useState } from "react";
 import { X, Send, Users, UserRound, ChevronDown, Check, Megaphone } from "lucide-react";
 import { db } from "../../firebase/firebase";

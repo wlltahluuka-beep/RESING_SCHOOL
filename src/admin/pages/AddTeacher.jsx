@@ -41,6 +41,7 @@ const emptySession = () => ({
 const emptyClassBlock = () => ({
   className: "",
   subject: "",
+  shift: "",
   // days hadda waa object: { Monday: [session1, session2, ...], ... }
   days: [],
   // daySessions: { [dayName]: [ {startTime, endTime}, ... ] }
@@ -56,6 +57,8 @@ export default function AddTeacher() {
   const [phoneNumber, setPhoneNumber] = useState("");
   const [parentName, setParentName] = useState("");
   const [parentPhoneNumber, setParentPhoneNumber] = useState("");
+  // Nooca shaqada macalinka -- Full Time ama Part Time
+  const [employmentType, setEmploymentType] = useState("");
 
   const [classBlocks, setClassBlocks] = useState([emptyClassBlock()]);
   const [saving, setSaving] = useState(false);
@@ -197,6 +200,11 @@ export default function AddTeacher() {
       return;
     }
 
+    if (employmentType === "") {
+      alert("Fadlan dooro nooca shaqada macalinka (Full Time / Part Time)");
+      return;
+    }
+
     if (!validateSessions()) {
       return;
     }
@@ -223,6 +231,7 @@ export default function AddTeacher() {
         parentName,
         fatherName: parentName, // TeacherIdCard.jsx expects `fatherName`
         parentPhoneNumber,
+        employmentType, // "Full Time" ama "Part Time"
         subjects: uniqueSubjects, // TeacherIdCard.jsx expects `subjects`
         classes: classBlocks,
         createdAt: serverTimestamp(),
@@ -331,7 +340,7 @@ export default function AddTeacher() {
             </Field>
           </div>
 
-          <div style={{ marginBottom: 26 }}>
+          <div style={topGrid}>
             <Field icon={Lock} label="Password">
               <input
                 style={{ ...input, maxWidth: 420 }}
@@ -340,6 +349,18 @@ export default function AddTeacher() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
+            </Field>
+
+            <Field icon={Clock} label="Nooca Shaqada">
+              <select
+                style={input}
+                value={employmentType}
+                onChange={(e) => setEmploymentType(e.target.value)}
+              >
+                <option value="">-- Dooro Nooca Shaqada --</option>
+                <option value="Full Time">🕐 Full Time</option>
+                <option value="Part Time">⏳ Part Time</option>
+              </select>
             </Field>
           </div>
 
@@ -389,6 +410,20 @@ export default function AddTeacher() {
                       updateClassBlock(index, "subject", e.target.value)
                     }
                   />
+                </Field>
+
+                <Field icon={Clock} label="Shift">
+                  <select
+                    style={input}
+                    value={block.shift}
+                    onChange={(e) =>
+                      updateClassBlock(index, "shift", e.target.value)
+                    }
+                  >
+                    <option value="">-- Dooro Shift --</option>
+                    <option value="Morning">🌅 Morning</option>
+                    <option value="Afternoon">🌇 Afternoon</option>
+                  </select>
                 </Field>
               </div>
 

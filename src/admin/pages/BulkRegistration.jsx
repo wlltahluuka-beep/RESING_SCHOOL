@@ -25,6 +25,7 @@ const classOptions = ["1", "2", "3", "4", "5", "6", "7", "8", "F1", "F2", "F3", 
 const emptyRow = () => ({
   fullName: "",
   className: "",
+  shift: "",
   monthlyFee: "",
   parentPhone: "",
   studentPhone: "",
@@ -136,6 +137,7 @@ export default function BulkRegistration() {
           studentId,
           fullName: student.fullName,
           className: student.className,
+          shift: student.shift,
           monthlyFee: student.monthlyFee,
           parentPhone: student.parentPhone,
           studentPhone: student.studentPhone,
@@ -235,6 +237,7 @@ export default function BulkRegistration() {
               <tr style={{ textAlign: "left", background: "rgba(139,108,245,0.08)" }}>
                 <th style={th}>Full Name</th>
                 <th style={th}>Class Name</th>
+                <th style={th}>Shift</th>
                 <th style={th}>Monthly Fee ($)</th>
                 <th style={th}>Parent Phone</th>
                 <th style={th}>Student Phone</th>
@@ -277,6 +280,20 @@ export default function BulkRegistration() {
                           {c}
                         </option>
                       ))}
+                    </select>
+                  </td>
+
+                  <td style={td}>
+                    <select
+                      style={input}
+                      value={student.shift}
+                      onChange={(e) =>
+                        handleChange(index, "shift", e.target.value)
+                      }
+                    >
+                      <option value="">Select</option>
+                      <option value="Morning">🌅 Morning</option>
+                      <option value="Afternoon">🌇 Afternoon</option>
                     </select>
                   </td>
 

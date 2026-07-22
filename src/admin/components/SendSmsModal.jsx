@@ -1,3 +1,4 @@
+//src/admin/components/SendSmsModal.jsx
 import { useEffect, useState } from "react";
 import { X, Send, Users, GraduationCap, User, CheckCircle2, XCircle } from "lucide-react";
 import { db } from "../../firebase/firebase";
