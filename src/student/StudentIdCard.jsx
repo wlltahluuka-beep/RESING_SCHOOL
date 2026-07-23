@@ -1,21 +1,25 @@
 // src/student/StudentIdCard.jsx
-// Renders the official Rising Star School Student ID card — front + back —
-// matching the printed reference design exactly. Pulls all data from the
-// student's own Firestore record (fullName, studentId, className, shift,
-// studentPhoto); nothing is typed here. Includes a "Print ID Card" button
-// that opens a clean print window with both sides, sized for a standard
-// CR80 card (85.6mm x 54mm) at 300dpi print scale.
+//
+// Renders the official Rising Star Primary & Secondary School Student ID
+// card — front + back — matching the printed reference design exactly.
+// All data (fullName, studentId, className, shift, studentPhoto, issueDate,
+// expireDate) is pulled from the student's own Firestore record — nothing
+// is hardcoded except the fixed school branding text.
+//
+// Includes:
+//   - "Print ID Card" button (prints front + back, CR80 card size)
+//   - "Download ID Card" button (downloads front + back as PNG images,
+//     using html2canvas — no server round-trip needed)
+
+import { useRef, useState } from "react";
 
 const SCHOOL = {
   name1: "RISING STAR",
-  name2: "SCHOOL",
-  tagline: "Excellence Today, Leaders Tomorrow",
-  phone: "+252 61 2345678",
-  website: "www.risingstarschool.so",
-  location: "Mogadishu, Somalia",
+  name2: "PRIMARY & SECONDARY SCHOOL",
+  since: "Since 2024",
+  tagline: "Education is life it self.",
   noticeTitle: "NB",
-  noticeBody:
-    "If you accidently find this card, please contact the following address.",
+  noticeBody: "If you accidently find this card, please contact the following address.",
   noticeTell: "+252-61 7390261",
   noticeEmail: "risingstar0261@gmail.com",
   noticeWeb: "resingstarschools.com",
@@ -27,9 +31,18 @@ function formatDate(d) {
   const dateObj = d?.seconds ? new Date(d.seconds * 1000) : new Date(d);
   if (isNaN(dateObj.getTime())) return null;
   const day = String(dateObj.getDate()).padStart(2, "0");
-  const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+  const months = [
+    "JAN","FEB","MAR","APR","MAY","JUN","JUL","AUG","SEP","OCT","NOV","DEC",
+  ];
+  const month = months[dateObj.getMonth()];
   const year = dateObj.getFullYear();
-  return { day, month, year, str: `${day}/${month}/${year}` };
+  return { day, month, year, str: `${day} ${month} ${year}` };
+}
+
+function addYears(dateObj, years) {
+  const d = new Date(dateObj.getTime());
+  d.setFullYear(d.getFullYear() + years);
+  return d;
 }
 
 function CardStyles() {
@@ -47,79 +60,85 @@ function CardStyles() {
         width: 420px;
         max-width: 100%;
         aspect-ratio: 856 / 540;
-        border-radius: 18px;
+        border-radius: 14px;
         overflow: hidden;
         position: relative;
         background: #ffffff;
-        box-shadow: 0 18px 44px rgba(0,0,0,0.35);
+        box-shadow: 0 18px 44px rgba(0,0,0,0.28);
         font-family: 'Poppins','Inter','Segoe UI',system-ui,sans-serif;
       }
 
       /* ---------- FRONT ---------- */
-      .idc-front { display: flex; flex-direction: column; }
-
-      .idc-wave-top {
-        position: absolute;
-        top: 0; left: 0; right: 0;
-        height: 46%;
-        background: #ffffff;
-        overflow: hidden;
+      .idc-front {
+        display: flex;
+        flex-direction: column;
+        padding: 14px 20px 0;
       }
-      .idc-wave-top svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; }
+
+      .idc-stars {
+        text-align: center;
+        color: #e08b1d;
+        font-size: 13px;
+        letter-spacing: 6px;
+        margin-bottom: 2px;
+      }
 
       .idc-front-header {
-        position: relative;
-        z-index: 2;
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 16px 18px 6px;
+        justify-content: center;
+        gap: 14px;
       }
-      .idc-logo-badge {
-        width: 54px;
-        height: 54px;
+
+      .idc-seal {
+        width: 62px;
+        height: 62px;
         border-radius: 50%;
         background: #fff;
-        border: 2px solid #1c6b3a;
+        border: 3px solid #14532d;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        font-size: 10px;
+        font-size: 6.5px;
         font-weight: 800;
-        color: #1c6b3a;
+        color: #14532d;
         text-align: center;
-        line-height: 1.1;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        line-height: 1.15;
+        padding: 3px;
       }
-      .idc-school-block { line-height: 1.05; }
+
+      .idc-school-block { text-align: center; line-height: 1.15; }
       .idc-school-name1 {
-        font-size: 19px;
+        font-size: 26px;
         font-weight: 800;
-        color: #1c6b3a;
-        letter-spacing: 0.3px;
+        color: #14532d;
+        letter-spacing: 1px;
       }
       .idc-school-name2 {
-        font-size: 15px;
+        font-size: 11.5px;
         font-weight: 700;
         color: #16202b;
-        letter-spacing: 3px;
+        letter-spacing: 2.5px;
+        border-top: 2px solid #e08b1d;
+        display: inline-block;
+        padding-top: 2px;
+        margin-top: 2px;
       }
       .idc-school-tag {
-        font-size: 8.5px;
-        font-weight: 700;
-        color: #e08b1d;
-        letter-spacing: 0.4px;
-        margin-top: 2px;
+        font-size: 10px;
+        font-weight: 600;
+        font-style: italic;
+        color: #16202b;
+        margin-top: 4px;
+        text-align: center;
       }
 
       .idc-front-body {
-        position: relative;
-        z-index: 2;
         flex: 1;
         display: flex;
-        padding: 8px 18px 0;
-        gap: 10px;
+        padding: 12px 0 0;
+        gap: 12px;
       }
 
       .idc-fields {
@@ -127,123 +146,108 @@ function CardStyles() {
         display: flex;
         flex-direction: column;
         justify-content: center;
-        gap: 9px;
+        gap: 12px;
         min-width: 0;
       }
       .idc-field-row {
         display: flex;
         align-items: center;
-        gap: 8px;
-        font-size: 12px;
+        gap: 10px;
+        font-size: 13px;
       }
       .idc-field-icon {
-        width: 18px;
-        height: 18px;
-        border-radius: 5px;
-        background: #1c6b3a;
+        width: 22px;
+        height: 22px;
+        border-radius: 6px;
+        background: #14532d;
         color: #fff;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 10px;
+        font-size: 12px;
         flex-shrink: 0;
       }
       .idc-field-label {
-        font-weight: 700;
+        font-weight: 800;
         color: #16202b;
-        min-width: 46px;
-        letter-spacing: 0.2px;
+        min-width: 88px;
+        letter-spacing: 0.3px;
+        white-space: nowrap;
       }
       .idc-field-colon { color: #16202b; font-weight: 700; }
       .idc-field-value {
-        font-weight: 700;
-        color: #1c6b3a;
+        font-weight: 800;
+        color: #16202b;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
       }
 
       .idc-photo-wrap {
-        width: 88px;
+        width: 118px;
         flex-shrink: 0;
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: center;
+        padding-top: 4px;
       }
       .idc-photo {
-        width: 84px;
-        height: 100px;
+        width: 112px;
+        height: 130px;
         object-fit: cover;
         border-radius: 8px;
-        border: 3px solid #1c6b3a;
+        border: 3px solid #f5a623;
         background: #eef3ee;
       }
       .idc-photo-placeholder {
-        width: 84px;
-        height: 100px;
+        width: 112px;
+        height: 130px;
         border-radius: 8px;
         border: 2px dashed #9db8a4;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 9px;
+        font-size: 10px;
         color: #6b8a73;
         text-align: center;
         padding: 4px;
       }
 
       .idc-front-footer {
-        position: relative;
-        z-index: 2;
-        background: #1c6b3a;
         margin-top: auto;
-        padding: 8px 18px 10px;
         display: flex;
         align-items: center;
         justify-content: space-between;
+        padding: 10px 4px 12px;
         gap: 10px;
+        position: relative;
+        z-index: 2;
       }
-      .idc-qr {
-        width: 46px;
-        height: 46px;
-        background: #fff;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 3px;
+      .idc-date-block { font-size: 9px; }
+      .idc-date-label {
+        font-weight: 800;
+        color: #e08b1d;
+        letter-spacing: 0.5px;
       }
-      .idc-qr img { width: 100%; height: 100%; }
-      .idc-signature {
-        text-align: right;
+      .idc-date-value {
+        font-weight: 800;
+        color: #16202b;
+        font-size: 11px;
+        margin-top: 1px;
       }
-      .idc-signature-line {
-        font-family: 'Brush Script MT', cursive;
-        font-size: 20px;
-        color: #fff;
-        line-height: 1;
-      }
-      .idc-signature-label {
-        font-size: 8.5px;
+      .idc-date-id {
         font-weight: 700;
-        color: #fdf3e0;
-        letter-spacing: 1px;
+        color: #16202b;
+        font-size: 9px;
         margin-top: 2px;
       }
 
-      .idc-bottom-bar {
-        background: #14532d;
-        color: #eafaf0;
-        font-size: 8px;
-        display: flex;
-        justify-content: space-around;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 10px;
-        flex-wrap: wrap;
-        text-align: center;
+      .idc-front-wave {
+        height: 34px;
+        position: relative;
+        z-index: 1;
       }
-      .idc-bottom-bar span { white-space: nowrap; }
+      .idc-front-wave svg { width: 100%; height: 100%; display: block; }
 
       /* ---------- BACK ---------- */
       .idc-back {
@@ -255,52 +259,103 @@ function CardStyles() {
         text-align: center;
       }
       .idc-back-wave-top, .idc-back-wave-bottom {
-        position: absolute;
-        left: 0; right: 0;
-        height: 60px;
+        position: relative;
+        z-index: 1;
+        height: 30px;
         overflow: hidden;
-        z-index: 0;
       }
-      .idc-back-wave-top { top: 0; }
-      .idc-back-wave-bottom { bottom: 0; }
       .idc-back-wave-top svg, .idc-back-wave-bottom svg {
-        width: 100%; height: 100%;
+        width: 100%; height: 100%; display: block;
       }
 
       .idc-back-content {
         position: relative;
         z-index: 2;
-        padding: 26px 30px 0;
+        padding: 28px 34px 0;
+        flex: 1;
       }
       .idc-back-title {
-        font-size: 26px;
+        font-size: 30px;
         font-weight: 800;
         color: #14532d;
-        margin-bottom: 14px;
+        margin-bottom: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 12px;
+      }
+      .idc-back-title .idc-diamond {
+        color: #e08b1d;
+        font-size: 12px;
+      }
+      .idc-back-title .idc-line {
+        flex: 1;
+        max-width: 60px;
+        height: 2px;
+        background: #e08b1d;
       }
       .idc-back-notice {
-        font-size: 12px;
+        font-size: 13.5px;
         font-weight: 700;
         color: #c0392b;
         line-height: 1.5;
-        max-width: 320px;
-        margin: 0 auto 14px;
+        max-width: 330px;
+        margin: 0 auto 16px;
       }
       .idc-back-line {
-        font-size: 12.5px;
+        font-size: 13.5px;
         font-weight: 700;
-        margin: 5px 0;
+        margin: 6px 0;
         color: #16202b;
       }
       .idc-back-line b { color: #14532d; }
 
-      .idc-back-footer {
+      .idc-back-footer-wrap {
         position: relative;
         z-index: 2;
-        font-size: 12px;
+        background: #14532d;
+        padding: 10px 12px 12px;
+      }
+      .idc-back-footer {
+        font-size: 13px;
         font-weight: 800;
         color: #fff;
-        padding: 10px 12px 14px;
+        letter-spacing: 0.3px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+      }
+      .idc-back-footer .idc-diamond { color: #e08b1d; font-size: 10px; }
+
+      .idc-actions {
+        display: flex;
+        justify-content: center;
+        gap: 12px;
+        margin-top: 4px;
+        flex-wrap: wrap;
+      }
+      .idc-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        border: none;
+        border-radius: 10px;
+        padding: 11px 24px;
+        font-weight: 700;
+        font-size: 13.5px;
+        cursor: pointer;
+      }
+      .idc-btn:disabled { opacity: 0.6; cursor: default; }
+      .idc-btn-print {
+        background: #14532d;
+        color: #fff;
+        box-shadow: 0 10px 24px rgba(20,83,45,0.3);
+      }
+      .idc-btn-download {
+        background: #e08b1d;
+        color: #fff;
+        box-shadow: 0 10px 24px rgba(224,139,29,0.3);
       }
 
       @media print {
@@ -313,69 +368,71 @@ function CardStyles() {
   );
 }
 
-function Wave({ variant = "front-top" }) {
-  if (variant === "front-top") {
-    return (
-      <svg viewBox="0 0 420 210" preserveAspectRatio="none">
-        <path d="M0,0 H420 V150 C320,190 260,120 180,150 C100,180 60,140 0,170 Z" fill="#14532d" />
-        <path d="M0,0 H420 V165 C330,195 270,140 190,165 C110,190 60,155 0,180 Z" fill="#f5a623" opacity="0.9" />
-        <path d="M0,0 H420 V178 C340,200 280,160 200,178 C120,196 70,168 0,190 Z" fill="#ffffff" />
-      </svg>
-    );
-  }
-  if (variant === "back-top") {
-    return (
-      <svg viewBox="0 0 420 60" preserveAspectRatio="none">
-        <path d="M0,0 H420 V20 C320,45 260,10 180,25 C100,40 60,15 0,30 Z" fill="#14532d" />
-        <path d="M0,0 H420 V12 C330,30 270,5 190,15 C110,25 60,8 0,18 Z" fill="#f5a623" opacity="0.9" />
-      </svg>
-    );
-  }
+function FrontWave() {
   return (
-    <svg viewBox="0 0 420 60" preserveAspectRatio="none">
-      <path d="M0,60 H420 V25 C320,5 260,40 180,28 C100,16 60,45 0,32 Z" fill="#14532d" />
-      <path d="M0,60 H420 V38 C330,20 270,50 190,40 C110,30 60,50 0,42 Z" fill="#1c6b3a" opacity="0.85" />
+    <svg viewBox="0 0 420 40" preserveAspectRatio="none">
+      <path d="M0,40 H420 V16 C330,2 300,26 230,18 C160,10 120,30 60,20 C30,15 15,22 0,18 Z" fill="#14532d" />
+      <path d="M0,40 H420 V26 C330,14 300,32 230,26 C160,20 120,34 60,28 C30,25 15,29 0,27 Z" fill="#e08b1d" opacity="0.85" />
     </svg>
   );
 }
 
-function CardFront({ student, studentId }) {
-  const shift = student?.shift || student?.classShift || "MORNING";
-  const qrValue = encodeURIComponent(
-    `Rising Star School | Student ID: ${studentId} | Name: ${student?.fullName || ""} | Class: ${student?.className || ""}`
+function BackWaveTop() {
+  return (
+    <svg viewBox="0 0 420 30" preserveAspectRatio="none">
+      <path d="M0,0 H420 V10 C320,24 260,4 180,14 C100,24 60,8 0,16 Z" fill="#14532d" />
+      <path d="M0,0 H420 V6 C330,16 270,2 190,8 C110,14 60,4 0,10 Z" fill="#e08b1d" opacity="0.85" />
+    </svg>
   );
-  const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=0&data=${qrValue}`;
+}
+
+function BackWaveBottom() {
+  return (
+    <svg viewBox="0 0 420 30" preserveAspectRatio="none">
+      <path d="M0,30 H420 V20 C320,6 260,26 180,16 C100,6 60,22 0,14 Z" fill="#e08b1d" opacity="0.85" />
+      <path d="M0,30 H420 V24 C320,12 260,30 180,22 C100,14 60,28 0,20 Z" fill="#14532d" />
+    </svg>
+  );
+}
+
+function CardFront({ student, studentId, forwardRef }) {
+  const shift = student?.shift || student?.classShift || "MORNING";
+  const issued = formatDate(student?.createdAt) || formatDate(new Date());
+  const issuedDateObj = student?.createdAt
+    ? (student.createdAt?.seconds
+        ? new Date(student.createdAt.seconds * 1000)
+        : new Date(student.createdAt))
+    : new Date();
+  const expire = student?.expireDate
+    ? formatDate(student.expireDate)
+    : formatDate(addYears(issuedDateObj, 1));
 
   return (
-    <div className="idc-card idc-front">
-      <div className="idc-wave-top">
-        <Wave variant="front-top" />
-      </div>
+    <div className="idc-card idc-front" ref={forwardRef}>
+      <div className="idc-stars">★ ★ ★ ★ ★</div>
 
       <div className="idc-front-header">
-        <div className="idc-logo-badge">RISING
-STAR
-SCHOOL</div>
+        <div className="idc-seal">RISING STAR<br />PRIMARY &amp;<br />SECONDARY<br />SCHOOL</div>
         <div className="idc-school-block">
           <div className="idc-school-name1">{SCHOOL.name1}</div>
           <div className="idc-school-name2">{SCHOOL.name2}</div>
-          <div className="idc-school-tag">{SCHOOL.tagline}</div>
         </div>
       </div>
+      <div className="idc-school-tag">{SCHOOL.tagline}</div>
 
       <div className="idc-front-body">
         <div className="idc-fields">
           <div className="idc-field-row">
-            <span className="idc-field-icon">🪪</span>
+            <span className="idc-field-icon">ID</span>
             <span className="idc-field-label">STUDENT ID</span>
             <span className="idc-field-colon">:</span>
             <span className="idc-field-value">{studentId || "—"}</span>
           </div>
           <div className="idc-field-row">
             <span className="idc-field-icon">👤</span>
-            <span className="idc-field-label">NAME</span>
+            <span className="idc-field-label">STUDENT NAME</span>
             <span className="idc-field-colon">:</span>
-            <span className="idc-field-value">{student?.fullName || "—"}</span>
+            <span className="idc-field-value">{(student?.fullName || "—").toUpperCase()}</span>
           </div>
           <div className="idc-field-row">
             <span className="idc-field-icon">🎓</span>
@@ -393,7 +450,12 @@ SCHOOL</div>
 
         <div className="idc-photo-wrap">
           {student?.studentPhoto ? (
-            <img className="idc-photo" src={student.studentPhoto} alt={student.fullName || "Student"} />
+            <img
+              className="idc-photo"
+              src={student.studentPhoto}
+              alt={student.fullName || "Student"}
+              crossOrigin="anonymous"
+            />
           ) : (
             <div className="idc-photo-placeholder">No Photo</div>
           )}
@@ -401,52 +463,84 @@ SCHOOL</div>
       </div>
 
       <div className="idc-front-footer">
-        <div className="idc-qr">
-          <img src={qrSrc} alt="QR code" />
+        <div className="idc-date-block">
+          <div className="idc-date-label">ISSUE DATE</div>
+          <div className="idc-date-value">{issued?.str || "—"}</div>
         </div>
-        <div className="idc-signature">
-          <div className="idc-signature-line">Principal</div>
-          <div className="idc-signature-label">PRINCIPAL</div>
+        <div className="idc-date-block" style={{ textAlign: "right" }}>
+          <div className="idc-date-label">EXPIRE DATE</div>
+          <div className="idc-date-value">{expire?.str || "—"}</div>
+          <div className="idc-date-id">{studentId || "—"}</div>
         </div>
       </div>
 
-      <div className="idc-bottom-bar">
-        <span>📞 {SCHOOL.phone}</span>
-        <span>🌐 {SCHOOL.website}</span>
-        <span>📍 {SCHOOL.location}</span>
+      <div className="idc-front-wave">
+        <FrontWave />
       </div>
     </div>
   );
 }
 
-function CardBack() {
+function CardBack({ forwardRef }) {
   return (
-    <div className="idc-card idc-back">
-      <div className="idc-back-wave-top"><Wave variant="back-top" /></div>
+    <div className="idc-card idc-back" ref={forwardRef}>
+      <div className="idc-back-wave-top"><BackWaveTop /></div>
 
       <div className="idc-back-content">
-        <div className="idc-back-title">{SCHOOL.noticeTitle}</div>
+        <div className="idc-back-title">
+          <span className="idc-line" />
+          <span className="idc-diamond">◆</span>
+          NB
+          <span className="idc-diamond">◆</span>
+          <span className="idc-line" />
+        </div>
         <div className="idc-back-notice">{SCHOOL.noticeBody}</div>
         <div className="idc-back-line"><b>Tell:</b> {SCHOOL.noticeTell}</div>
         <div className="idc-back-line"><b>Email:</b> {SCHOOL.noticeEmail}</div>
         <div className="idc-back-line"><b>Web:</b> {SCHOOL.noticeWeb}</div>
       </div>
 
-      <div className="idc-back-wave-bottom"><Wave variant="back-bottom" /></div>
-      <div className="idc-back-footer">{SCHOOL.officeLabel}</div>
+      <div className="idc-back-wave-bottom"><BackWaveBottom /></div>
+      <div className="idc-back-footer-wrap">
+        <div className="idc-back-footer">
+          <span className="idc-diamond">◆</span>
+          {SCHOOL.officeLabel}
+          <span className="idc-diamond">◆</span>
+        </div>
+      </div>
     </div>
   );
 }
 
+// Loads html2canvas from CDN once and caches the promise on window.
+function loadHtml2Canvas() {
+  if (window.__html2canvasPromise) return window.__html2canvasPromise;
+  window.__html2canvasPromise = new Promise((resolve, reject) => {
+    if (window.html2canvas) {
+      resolve(window.html2canvas);
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+    script.onload = () => resolve(window.html2canvas);
+    script.onerror = () => reject(new Error("Failed to load html2canvas"));
+    document.body.appendChild(script);
+  });
+  return window.__html2canvasPromise;
+}
+
 export default function StudentIdCard({ student, studentId }) {
-  const issued = formatDate(student?.createdAt);
+  const frontRef = useRef(null);
+  const backRef = useRef(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
 
   const handlePrint = () => {
     const printWindow = window.open("", "_blank", "width=900,height=650");
     if (!printWindow) return;
 
-    const frontHtml = document.getElementById("idc-print-front")?.outerHTML || "";
-    const backHtml = document.getElementById("idc-print-back")?.outerHTML || "";
+    const frontHtml = frontRef.current?.outerHTML || "";
+    const backHtml = backRef.current?.outerHTML || "";
     const stylesHtml = Array.from(document.querySelectorAll("style"))
       .map((s) => s.outerHTML)
       .join("\n");
@@ -476,41 +570,60 @@ export default function StudentIdCard({ student, studentId }) {
     }, 400);
   };
 
+  const handleDownload = async () => {
+    setError("");
+    setBusy(true);
+    try {
+      const html2canvas = await loadHtml2Canvas();
+      const namePart = (student?.fullName || studentId || "student")
+        .toString()
+        .trim()
+        .replace(/\s+/g, "_");
+
+      const renderAndSave = async (node, suffix) => {
+        if (!node) return;
+        const canvas = await html2canvas(node, {
+          scale: 3,
+          useCORS: true,
+          backgroundColor: "#ffffff",
+        });
+        const link = document.createElement("a");
+        link.download = `${namePart}_ID_${suffix}.png`;
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+      };
+
+      await renderAndSave(frontRef.current, "front");
+      await renderAndSave(backRef.current, "back");
+    } catch (err) {
+      console.error(err);
+      setError("Download failed. Please try again.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div>
       <CardStyles />
 
       <div className="idc-wrap">
-        <div id="idc-print-front">
-          <CardFront student={student} studentId={studentId} />
-        </div>
-        <div id="idc-print-back">
-          <CardBack />
-        </div>
+        <CardFront student={student} studentId={studentId} forwardRef={frontRef} />
+        <CardBack forwardRef={backRef} />
       </div>
 
-      <div className="idc-print-hide" style={{ display: "flex", justifyContent: "center", marginTop: 4 }}>
-        <button
-          onClick={handlePrint}
-          style={{
-            background: "#14532d",
-            color: "#fff",
-            border: "none",
-            borderRadius: 10,
-            padding: "12px 28px",
-            fontWeight: 700,
-            fontSize: 14,
-            cursor: "pointer",
-            boxShadow: "0 10px 24px rgba(20,83,45,0.35)",
-          }}
-        >
-          🖨️ Print ID Card (Front &amp; Back)
+      <div className="idc-print-hide idc-actions">
+        <button className="idc-btn idc-btn-print" onClick={handlePrint}>
+          🖨️ Print ID card
+        </button>
+        <button className="idc-btn idc-btn-download" onClick={handleDownload} disabled={busy}>
+          {busy ? "Preparing…" : "⬇️ Download ID card"}
         </button>
       </div>
 
-      {issued?.str && (
-        <div style={{ textAlign: "center", fontSize: 11, color: "#8b97b0", marginTop: 10 }}>
-          Issued: {issued.str}
+      {error && (
+        <div style={{ textAlign: "center", fontSize: 12, color: "#c0392b", marginTop: 8 }}>
+          {error}
         </div>
       )}
     </div>
