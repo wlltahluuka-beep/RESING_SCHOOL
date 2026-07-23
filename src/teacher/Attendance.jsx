@@ -47,6 +47,24 @@ function AttendanceStyles() {
   );
 }
 
+// Helper: turn a "YYYY-MM-DD" date string into the weekday name used in
+// the `timetable` collection (e.g. "Monday", "Tuesday", ...).
+function getWeekdayName(dateStr) {
+  const days = [
+    "Sunday",
+    "Monday",
+    "Tuesday",
+    "Wednesday",
+    "Thursday",
+    "Friday",
+    "Saturday",
+  ];
+  // Parse as a local date (avoid timezone shifting the day back by one).
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const dt = new Date(y, m - 1, d);
+  return days[dt.getDay()];
+}
+
 export default function Attendance() {
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState("");
@@ -60,6 +78,11 @@ export default function Attendance() {
   const [existingSessions, setExistingSessions] = useState([]);
   const [sessionSaved, setSessionSaved] = useState(false);
 
+  // NEW: whether the selected class actually has a lesson scheduled today
+  // (checked against the `timetable` collection, doc id `${className}__${weekday}`).
+  const [isScheduledToday, setIsScheduledToday] = useState(true);
+  const [checkingSchedule, setCheckingSchedule] = useState(false);
+
   const teacherId = localStorage.getItem("teacherId") || "";
   const teacherName = localStorage.getItem("teacherName") || "Teacher";
 
@@ -69,12 +92,13 @@ export default function Attendance() {
 
   useEffect(() => {
     if (selectedClass) {
-      loadStudents(selectedClass);
+      checkScheduleThenLoadStudents(selectedClass, date);
     } else {
       setStudents([]);
       setAttendance({});
       setExistingSessions([]);
       setSessionSaved(false);
+      setIsScheduledToday(true);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedClass, date]);
@@ -102,7 +126,45 @@ export default function Attendance() {
     }
   };
 
-  const loadStudents = async (className) => {
+  // Checks the `timetable` collection for a document `${className}__${weekday}`.
+  // Only when that document exists (i.e. the class has a lesson scheduled for
+  // the chosen date's weekday) do we allow attendance to be taken.
+  const checkScheduleThenLoadStudents = async (className, dateStr) => {
+    try {
+      setCheckingSchedule(true);
+      const weekday = getWeekdayName(dateStr);
+      const timetableDocId = `${className}__${weekday}`;
+
+      const timetableSnap = await getDocs(
+        query(
+          collection(db, "timetable"),
+          where("className", "==", className),
+          where("day", "==", weekday)
+        )
+      );
+
+      const scheduledToday = !timetableSnap.empty;
+      setIsScheduledToday(scheduledToday);
+
+      if (!scheduledToday) {
+        // Not scheduled today: don't bother loading students/attendance,
+        // just show the "no session today" state.
+        setStudents([]);
+        setAttendance({});
+        setExistingSessions([]);
+        setSessionSaved(false);
+        return;
+      }
+
+      await loadStudents(className, dateStr);
+    } catch (err) {
+      console.log(err);
+    } finally {
+      setCheckingSchedule(false);
+    }
+  };
+
+  const loadStudents = async (className, dateStr) => {
     try {
       setLoading(true);
       setSessionSaved(false);
@@ -122,7 +184,7 @@ export default function Attendance() {
         query(
           collection(db, "attendance"),
           where("className", "==", className),
-          where("date", "==", date),
+          where("date", "==", dateStr),
           where("teacherId", "==", teacherId)
         )
       );
@@ -166,12 +228,12 @@ export default function Attendance() {
   };
 
   const setStatus = (studentId, status) => {
-    if (sessionSaved) return;
+    if (sessionSaved || !isScheduledToday) return;
     setAttendance({ ...attendance, [studentId]: status });
   };
 
   const markAll = (status) => {
-    if (sessionSaved) return;
+    if (sessionSaved || !isScheduledToday) return;
     const updated = {};
     students.forEach((s) => {
       updated[s.id] = status;
@@ -182,6 +244,11 @@ export default function Attendance() {
   const saveAttendance = async () => {
     if (!selectedClass) {
       alert("Please select a class first");
+      return;
+    }
+
+    if (!isScheduledToday) {
+      alert("Xiisad malihid maanta.");
       return;
     }
 
@@ -240,6 +307,8 @@ export default function Attendance() {
     (s.studentId || s.id || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const locked = sessionSaved || !isScheduledToday;
+
   return (
     <div className="att-layout">
       <AttendanceStyles />
@@ -249,7 +318,14 @@ export default function Attendance() {
         <Topbar teacherName={teacherName} />
 
         <div className="att-body">
-          {sessionSaved && (
+          {selectedClass && !checkingSchedule && !isScheduledToday && (
+            <div style={lockedBanner}>
+              🚫 Xiisad malihid maanta ({date}) fasalka {selectedClass}. Fadlan
+              dooro maalinta jadwalka ku qoran ama fasal kale.
+            </div>
+          )}
+
+          {sessionSaved && isScheduledToday && (
             <div style={lockedBanner}>
               🔒 Xaadirintii maalintan ({date}) waa la kaydiyay ee waa la
               xiray. Waxaad mar kale furan kartaa maalinta soo socota.
@@ -344,11 +420,11 @@ export default function Attendance() {
                 style={{
                   ...btnAction,
                   background: "#22C55E",
-                  opacity: sessionSaved ? 0.5 : 1,
-                  cursor: sessionSaved ? "not-allowed" : "pointer",
+                  opacity: locked ? 0.5 : 1,
+                  cursor: locked ? "not-allowed" : "pointer",
                 }}
                 onClick={() => markAll("Present")}
-                disabled={sessionSaved}
+                disabled={locked}
               >
                 ✓ Mark All Present
               </button>
@@ -356,11 +432,11 @@ export default function Attendance() {
                 style={{
                   ...btnAction,
                   background: "#EF4444",
-                  opacity: sessionSaved ? 0.5 : 1,
-                  cursor: sessionSaved ? "not-allowed" : "pointer",
+                  opacity: locked ? 0.5 : 1,
+                  cursor: locked ? "not-allowed" : "pointer",
                 }}
                 onClick={() => markAll("Absent")}
-                disabled={sessionSaved}
+                disabled={locked}
               >
                 ✕ Mark All Absent
               </button>
@@ -369,13 +445,21 @@ export default function Attendance() {
 
           {/* Table */}
           <div className="att-panel" style={tableCard}>
-            {loading ? (
+            {checkingSchedule ? (
+              <p style={{ padding: 20, color: "#94A3B8" }}>Checking schedule...</p>
+            ) : loading ? (
               <p style={{ padding: 20, color: "#94A3B8" }}>Loading students...</p>
+            ) : !selectedClass ? (
+              <p style={{ padding: 20, color: "#94A3B8" }}>
+                Select a class to load students.
+              </p>
+            ) : !isScheduledToday ? (
+              <p style={{ padding: 20, color: "#94A3B8" }}>
+                Xiisad malihid maanta fasalkan.
+              </p>
             ) : students.length === 0 ? (
               <p style={{ padding: 20, color: "#94A3B8" }}>
-                {selectedClass
-                  ? "No students found in this class."
-                  : "Select a class to load students."}
+                No students found in this class.
               </p>
             ) : (
               <div className="att-table-wrap">
@@ -429,30 +513,30 @@ export default function Attendance() {
                           <div style={{ display: "flex", gap: 8 }}>
                             <button
                               onClick={() => setStatus(s.id, "Present")}
-                              disabled={sessionSaved}
+                              disabled={locked}
                               title="Present"
                               style={{
                                 ...circleBtn,
                                 background:
                                   attendance[s.id] === "Present" ? "#22C55E" : "#1F2937",
                                 color: attendance[s.id] === "Present" ? "white" : "#94A3B8",
-                                cursor: sessionSaved ? "not-allowed" : "pointer",
-                                opacity: sessionSaved ? 0.6 : 1,
+                                cursor: locked ? "not-allowed" : "pointer",
+                                opacity: locked ? 0.6 : 1,
                               }}
                             >
                               ✓
                             </button>
                             <button
                               onClick={() => setStatus(s.id, "Absent")}
-                              disabled={sessionSaved}
+                              disabled={locked}
                               title="Absent"
                               style={{
                                 ...circleBtn,
                                 background:
                                   attendance[s.id] === "Absent" ? "#EF4444" : "#1F2937",
                                 color: attendance[s.id] === "Absent" ? "white" : "#94A3B8",
-                                cursor: sessionSaved ? "not-allowed" : "pointer",
-                                opacity: sessionSaved ? 0.6 : 1,
+                                cursor: locked ? "not-allowed" : "pointer",
+                                opacity: locked ? 0.6 : 1,
                               }}
                             >
                               ✕
@@ -467,15 +551,15 @@ export default function Attendance() {
             )}
           </div>
 
-          {students.length > 0 && (
+          {isScheduledToday && students.length > 0 && (
             <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
               <button
                 onClick={saveAttendance}
-                disabled={saving || sessionSaved}
+                disabled={saving || locked}
                 style={{
                   ...btnPrimary,
-                  opacity: sessionSaved ? 0.6 : 1,
-                  cursor: sessionSaved ? "not-allowed" : "pointer",
+                  opacity: locked ? 0.6 : 1,
+                  cursor: locked ? "not-allowed" : "pointer",
                 }}
               >
                 {saving
