@@ -4,6 +4,7 @@ import { initializeApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
+import { getFunctions } from "firebase/functions";
 
 /* ===========================================================
    RISING STAR SCHOOL (NEW DATABASE)
@@ -40,6 +41,7 @@ const galladApp = initializeApp(galladConfig, "gallad");
 export const db = getFirestore(risingApp);
 export const auth = getAuth(risingApp);
 export const storage = getStorage(galladApp);
+export const functions = getFunctions(risingApp);
 
 // App-ka guud iyo magacyadiisa saxda ah
 export { risingApp, galladApp };
