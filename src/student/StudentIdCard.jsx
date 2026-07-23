@@ -95,25 +95,18 @@ function CardStyles() {
         height: 68px;
         border-radius: 50%;
         background: #fff;
-        border: 3px solid #14532d;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
-        font-size: 6.5px;
-        font-weight: 800;
-        color: #14532d;
-        text-align: center;
-        line-height: 1.25;
-        padding: 4px;
-        position: relative;
+        overflow: hidden;
+        flex-shrink: 0;
       }
-      .idc-seal::before {
-        content: "";
-        position: absolute;
-        inset: 4px;
-        border-radius: 50%;
-        border: 1px solid #14532d;
+      .idc-seal-img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+        display: block;
       }
 
       .idc-school-block { text-align: center; line-height: 1.15; flex: 1; }
@@ -413,15 +406,26 @@ function BackWaveBottom() {
   );
 }
 
-function SchoolSeal() {
+// Real school logo image (garland + open-book + sun mark), matching the
+// printed reference design exactly — no text-based seal placeholder.
+// Pass logoUrl down from the parent (e.g. student.schoolLogo or a fixed
+// asset URL) so it can be swapped without touching this component.
+function SchoolSeal({ logoUrl }) {
   return (
     <div className="idc-seal">
-      RISING STAR<br />PRIMARY &amp;<br />SECONDARY<br />SCHOOL
+      {logoUrl ? (
+        <img
+          src={logoUrl}
+          alt="Rising Star Primary & Secondary School"
+          className="idc-seal-img"
+          crossOrigin="anonymous"
+        />
+      ) : null}
     </div>
   );
 }
 
-function CardFront({ student, studentId, forwardRef }) {
+function CardFront({ student, studentId, forwardRef, logoUrl }) {
   const shift = student?.shift || student?.classShift || "MORNING";
 
   // Issue date always comes from the student's own record (createdAt / issueDate).
@@ -441,12 +445,12 @@ function CardFront({ student, studentId, forwardRef }) {
       </div>
 
       <div className="idc-front-header">
-        <SchoolSeal />
+        <SchoolSeal logoUrl={logoUrl} />
         <div className="idc-school-block">
           <div className="idc-school-name1">{SCHOOL.name1}</div>
           <div className="idc-school-name2">{SCHOOL.name2}</div>
         </div>
-        <SchoolSeal />
+        <SchoolSeal logoUrl={logoUrl} />
       </div>
       <div className="idc-school-tag">
         <span className="idc-tagline-rule" />
@@ -486,11 +490,16 @@ function CardFront({ student, studentId, forwardRef }) {
 
         <div className="idc-photo-wrap">
           {student?.studentPhoto ? (
+            // No crossOrigin here on purpose: Firebase Storage download URLs
+            // don't need it to just display, and adding it can make the
+            // browser refuse to load the image (showing blank/faded) if the
+            // bucket's CORS config doesn't explicitly allow anonymous
+            // cross-origin reads. The download/print snapshot below adds
+            // crossOrigin only at capture time, wrapped in a try/catch.
             <img
               className="idc-photo"
               src={student.studentPhoto}
               alt={student.fullName || "Student"}
-              crossOrigin="anonymous"
             />
           ) : (
             <div className="idc-photo-placeholder">No Photo</div>
@@ -572,7 +581,7 @@ function loadHtml2Canvas() {
   return window.__html2canvasPromise;
 }
 
-export default function StudentIdCard({ student, studentId }) {
+export default function StudentIdCard({ student, studentId, logoUrl }) {
   const frontRef = useRef(null);
   const backRef = useRef(null);
   const [busy, setBusy] = useState(false);
@@ -654,8 +663,17 @@ export default function StudentIdCard({ student, studentId }) {
       <CardStyles />
 
       <div className="idc-wrap">
-        <CardFront student={student} studentId={studentId} forwardRef={frontRef} />
+        <CardFront student={student} studentId={studentId} forwardRef={frontRef} logoUrl={logoUrl} />
         <CardBack forwardRef={backRef} />
+      </div>
+
+      <div className="idc-print-hide idc-actions">
+        <button className="idc-btn idc-btn-print" onClick={handlePrint}>
+          🖨️ Print ID card
+        </button>
+        <button className="idc-btn idc-btn-download" onClick={handleDownload} disabled={busy}>
+          {busy ? "Preparing…" : "⬇️ Download ID card"}
+        </button>
       </div>
 
       {error && (
