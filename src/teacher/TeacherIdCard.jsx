@@ -1,31 +1,21 @@
 // src/teacher/TeacherIdCard.jsx
-import React from "react";
 // Renders the official Rising Star School Teacher ID card — front + back —
 // matching the printed reference design exactly. Pulls all data straight
 // from the teacher's own Firestore record (fullName, username, phone,
-// subjects, createdAt, teacherPhoto / photoUrl).
+// subjects, createdAt, teacherPhoto). The "Teacher ID" shown on the card
+// is the teacher's login username (e.g. "moodir1"), exactly as stored in
+// Firestore doc id / username field — nothing is typed by the teacher.
 //
-// FIX (2026-07-23):
-// 1) "TEACHER ID" now shows the official registration-style ID
-//    (e.g. "RSPS/T/0001") instead of the raw login username ("guul1").
-//    It reads teacher.teacherRegNo / teacher.idNumber / teacher.regNo if
-//    that field exists in Firestore already. If it doesn't exist yet,
-//    it falls back to auto-generating "RSPS/T/00xx" from teacher.teacherIndex
-//    (a numeric field) or, as a last resort, from the numeric part of the
-//    username — but NEVER shows the raw username itself.
-// 2) The photo box was showing a broken image / wrong logo because some
-//    teacher docs only have `photoUrl` (base64 data URI) while others have
-//    `teacherPhoto` (Firebase Storage https URL) — and some docs have BOTH,
-//    with one of them broken. getTeacherPhotoSrc() now tries every known
-//    field, in priority order, and the <img> tag has an onError handler
-//    that automatically falls through to the next candidate at render
-//    time, so a bad/expired URL in one field no longer blanks the photo.
+// NOTE: this is the teacher's own self-view of their ID card (shown on
+// their Profile page). There is intentionally no print/download control
+// here — teachers can view their card but cannot print or export it.
 
 const SCHOOL = {
   name1: "RISING STAR",
-  name2: "SCHOOL",
+  name2: "PRIMARY & SECONDARY",
+  name3: "SCHOOL",
   tagline: "Teaching Today, Transforming Tomorrow",
-  website: "resingstarschools.com",
+  website: "risingstarschools.com",
   location: "Mogadishu, Somalia",
   noticeTell: "+252 61 7390261",
   noticeEmail: "risingstar0261@gmail.com",
@@ -42,58 +32,6 @@ function formatDate(d) {
   const month = months[dateObj.getMonth()];
   const year = dateObj.getFullYear();
   return { day, month, year, str: `${day} ${month} ${year}` };
-}
-
-// ---------------------------------------------------------------------
-// Official Teacher ID (e.g. "RSPS/T/0001")
-// ---------------------------------------------------------------------
-// Priority:
-//  1. An explicit field already stored in Firestore under one of these
-//     names (use whichever your admin panel writes to).
-//  2. Auto-build "RSPS/T/00xx" from a numeric index field.
-//  3. Auto-build from any digits found inside the username (e.g. "guul1" -> 1).
-//  4. Fallback to "—" (never shows the raw username).
-function getOfficialTeacherId(teacher, teacherUsername) {
-  const explicit =
-    teacher?.teacherRegNo ||
-    teacher?.teacherIdNumber ||
-    teacher?.idNumber ||
-    teacher?.regNo ||
-    teacher?.employeeId;
-
-  if (explicit) return explicit;
-
-  const numericIndex =
-    teacher?.teacherIndex ??
-    teacher?.teacherNumber ??
-    teacher?.index;
-
-  if (numericIndex !== undefined && numericIndex !== null && numericIndex !== "") {
-    const n = String(numericIndex).padStart(4, "0");
-    return `RSPS/T/${n}`;
-  }
-
-  const digitsInUsername = (teacherUsername || "").match(/\d+/);
-  if (digitsInUsername) {
-    const n = digitsInUsername[0].padStart(4, "0");
-    return `RSPS/T/${n}`;
-  }
-
-  return "—";
-}
-
-// ---------------------------------------------------------------------
-// Teacher photo — try every known field, in priority order.
-// ---------------------------------------------------------------------
-function getPhotoCandidates(teacher) {
-  // photoUrl (base64 data URI, uploaded directly through the teacher's own
-  // profile form) has proven to reliably hold the correct photo. teacherPhoto
-  // (a Firebase Storage https URL) can point at a stale or wrong file that
-  // still loads successfully — so it no longer takes priority; it's kept
-  // only as a fallback for older records that never got a photoUrl.
-  return [teacher?.photoUrl, teacher?.teacherPhoto, teacher?.photo, teacher?.imageUrl].filter(
-    (v) => typeof v === "string" && v.trim().length > 0
-  );
 }
 
 function CardStyles() {
@@ -159,13 +97,15 @@ function CardStyles() {
         position: relative;
         z-index: 2;
         display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 14px;
-        padding: 26px 22px 6px;
+        gap: 4px;
+        padding: 22px 22px 4px;
+        text-align: center;
       }
       .tidc-logo-badge {
-        width: 64px;
-        height: 64px;
+        width: 76px;
+        height: 76px;
         border-radius: 50%;
         background: #fff;
         border: 2.5px solid #1c6b3a;
@@ -176,6 +116,7 @@ function CardStyles() {
         box-shadow: 0 2px 8px rgba(0,0,0,0.12);
         position: relative;
         overflow: hidden;
+        margin-bottom: 6px;
       }
       .tidc-logo-ring {
         position: absolute;
@@ -183,43 +124,37 @@ function CardStyles() {
         border-radius: 50%;
         border: 1px solid #cfe0d3;
       }
-      .tidc-logo-emoji { font-size: 22px; }
-      .tidc-school-block { line-height: 1.08; padding-top: 2px; }
+      .tidc-school-block { line-height: 1.1; }
       .tidc-school-name1 {
-        font-size: 20px;
+        font-size: 21px;
         font-weight: 800;
         color: #14532d;
         letter-spacing: 0.3px;
       }
       .tidc-school-name2 {
+        font-size: 13px;
+        font-weight: 700;
+        color: #16202b;
+        letter-spacing: 1.5px;
+        text-transform: uppercase;
+      }
+      .tidc-school-name3 {
         font-size: 16px;
         font-weight: 700;
         color: #16202b;
-        letter-spacing: 3px;
-      }
-      .tidc-school-underline {
-        width: 46px;
-        height: 2px;
-        background: #f5a623;
-        margin: 4px 0 4px;
-        border-radius: 2px;
-      }
-      .tidc-school-tag {
-        font-size: 9px;
-        font-weight: 700;
-        color: #e08b1d;
-        letter-spacing: 0.3px;
+        letter-spacing: 4px;
       }
 
       .tidc-title-bar {
         position: relative;
         z-index: 2;
-        margin: 14px 22px 14px;
+        margin: 12px 22px 14px;
         background: #14532d;
         border-radius: 8px;
         padding: 9px 16px;
         display: flex;
         align-items: baseline;
+        justify-content: center;
         gap: 7px;
         box-shadow: 0 6px 14px rgba(20,83,45,0.25);
       }
@@ -282,14 +217,6 @@ function CardStyles() {
         min-width: 0;
       }
 
-      .tidc-photo-col {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        flex-shrink: 0;
-        gap: 14px;
-      }
-
       .tidc-photo-wrap {
         width: 92px;
         flex-shrink: 0;
@@ -297,30 +224,6 @@ function CardStyles() {
         align-items: flex-start;
         justify-content: center;
         padding-top: 2px;
-      }
-
-      .tidc-signature-block {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        gap: 2px;
-        width: 92px;
-      }
-      .tidc-signature-svg { display: block; }
-      .tidc-signature-line {
-        width: 82px;
-        height: 1px;
-        background: #16202b;
-        margin-top: 2px;
-      }
-      .tidc-signature-label {
-        font-size: 6.6px;
-        font-weight: 800;
-        color: #16202b;
-        letter-spacing: 0.3px;
-        text-align: center;
-        margin-top: 3px;
-        white-space: nowrap;
       }
       .tidc-photo {
         width: 90px;
@@ -344,6 +247,27 @@ function CardStyles() {
         padding: 4px;
       }
 
+      .tidc-signature {
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        padding: 6px 22px 0;
+        margin-top: 8px;
+      }
+      .tidc-signature-line {
+        width: 150px;
+        border-top: 1px solid #16202b;
+        margin-top: 30px;
+        padding-top: 4px;
+        text-align: center;
+        font-size: 9.5px;
+        font-weight: 700;
+        color: #16202b;
+        letter-spacing: 0.3px;
+      }
+
       .tidc-footer {
         position: relative;
         z-index: 2;
@@ -352,7 +276,7 @@ function CardStyles() {
         align-items: center;
         justify-content: center;
         gap: 3px;
-        padding: 10px 18px 6px;
+        padding: 8px 18px 6px;
         margin-top: auto;
       }
       .tidc-qr {
@@ -399,15 +323,14 @@ function CardStyles() {
         margin-bottom: 14px;
       }
       .tidc-back-logo {
-        width: 56px;
-        height: 56px;
+        width: 68px;
+        height: 68px;
         border-radius: 50%;
         background: #fff;
         border: 2.5px solid #1c6b3a;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 18px;
       }
       .tidc-section-bar {
         background: #14532d;
@@ -488,13 +411,6 @@ function CardStyles() {
         z-index: 2;
         margin-top: 4px;
       }
-
-      @media print {
-        body { margin: 0; }
-        .tidc-print-hide { display: none !important; }
-        .tidc-wrap { gap: 0; padding: 0; }
-        .tidc-card { box-shadow: none; page-break-inside: avoid; }
-      }
     `}</style>
   );
 }
@@ -561,52 +477,27 @@ function BandBottom() {
   );
 }
 
-// Photo component with automatic fallback across every candidate field.
-// If the current src fails to load (broken URL, expired token, CORS,
-// wrong content type, etc.) it advances to the next candidate instead
-// of leaving a blank/wrong image in place.
-function TeacherPhoto({ teacher, fullNameText }) {
-  const candidates = getPhotoCandidates(teacher);
-  const [idx, setIdx] = React.useState(0);
-
-  if (candidates.length === 0 || idx >= candidates.length) {
-    return <div className="tidc-photo-placeholder">No Photo</div>;
-  }
-
-  return (
-    <img
-      className="tidc-photo"
-      src={candidates[idx]}
-      alt={fullNameText}
-      onError={() => setIdx((i) => i + 1)}
-    />
-  );
-}
-
 function CardFront({ teacher, teacherUsername }) {
   const joined = formatDate(teacher?.createdAt);
   const subjectText = Array.isArray(teacher?.subjects)
     ? teacher.subjects.join(", ")
     : teacher?.subject || "—";
 
-  // Firestore stores the mother's name under a few possible keys
-  // depending on how the record was created ("matherName" is a typo
-  // that exists in some older documents, "parentName" is used in
-  // others). Fall back through all of them so the card always shows
-  // the real value instead of "—".
   const motherNameText =
     teacher?.motherName || teacher?.matherName || teacher?.parentName || "—";
 
-  // Show the teacher's complete name — never truncate it. If it's
-  // stored as separate first/last fields, join them; otherwise fall
-  // back to fullName / name as-is.
   const fullNameText =
     teacher?.fullName ||
     teacher?.name ||
     [teacher?.firstName, teacher?.lastName].filter(Boolean).join(" ") ||
     "—";
 
-  const officialTeacherId = getOfficialTeacherId(teacher, teacherUsername);
+  // Firestore stores the teacher's photo under "teacherPhoto" (a full
+  // Firebase Storage download URL, e.g.
+  // https://firebasestorage.googleapis.com/.../teacherPhotos%2F...jpeg?alt=media&token=...).
+  // Some older docs may still have used "photoUrl" instead, so fall
+  // back to that for backward compatibility.
+  const photoSrc = teacher?.teacherPhoto || teacher?.photoUrl || "";
 
   const qrValue = encodeURIComponent(`https://${SCHOOL.website}`);
   const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=120x120&margin=0&data=${qrValue}`;
@@ -620,13 +511,12 @@ function CardFront({ teacher, teacherUsername }) {
         <div className="tidc-header">
           <div className="tidc-logo-badge">
             <div className="tidc-logo-ring" />
-            <SchoolCrest size={40} />
+            <SchoolCrest size={56} />
           </div>
           <div className="tidc-school-block">
             <div className="tidc-school-name1">{SCHOOL.name1}</div>
             <div className="tidc-school-name2">{SCHOOL.name2}</div>
-            <div className="tidc-school-underline" />
-            <div className="tidc-school-tag">{SCHOOL.tagline}</div>
+            <div className="tidc-school-name3">{SCHOOL.name3}</div>
           </div>
         </div>
 
@@ -641,7 +531,7 @@ function CardFront({ teacher, teacherUsername }) {
               <span className="tidc-field-icon">🪪</span>
               <span className="tidc-field-label">TEACHER ID</span>
               <span className="tidc-field-colon">:</span>
-              <span className="tidc-field-value">{officialTeacherId}</span>
+              <span className="tidc-field-value">{teacherUsername || "—"}</span>
             </div>
             <div className="tidc-field-row">
               <span className="tidc-field-icon">👤</span>
@@ -675,25 +565,17 @@ function CardFront({ teacher, teacherUsername }) {
             </div>
           </div>
 
-          <div className="tidc-photo-col">
-            <div className="tidc-photo-wrap">
-              <TeacherPhoto teacher={teacher} fullNameText={fullNameText} />
-            </div>
-
-            <div className="tidc-signature-block">
-              <svg className="tidc-signature-svg" viewBox="0 0 90 34" width="82" height="30">
-                <path
-                  d="M8,26 C12,10 16,28 22,14 C26,4 30,24 34,16 L40,6 L44,26 C48,18 52,22 56,12 C60,4 64,20 68,14 C71,10 74,16 76,10"
-                  stroke="#1c3fae"
-                  strokeWidth="2"
-                  fill="none"
-                  strokeLinecap="round"
-                />
-              </svg>
-              <div className="tidc-signature-line" />
-              <div className="tidc-signature-label">PRINCIPAL'S SIGNATURE</div>
-            </div>
+          <div className="tidc-photo-wrap">
+            {photoSrc ? (
+              <img className="tidc-photo" src={photoSrc} alt={fullNameText} />
+            ) : (
+              <div className="tidc-photo-placeholder">No Photo</div>
+            )}
           </div>
+        </div>
+
+        <div className="tidc-signature">
+          <div className="tidc-signature-line">PRINCIPAL'S SIGNATURE</div>
         </div>
 
         <div className="tidc-footer">
@@ -708,7 +590,7 @@ function CardFront({ teacher, teacherUsername }) {
         </div>
 
         <div className="tidc-band-bottom"><BandBottom /></div>
-        <div className="tidc-slogan">"Shaping Bright Futures"</div>
+        <div className="tidc-slogan">"Education Is Life It Self"</div>
       </div>
     </div>
   );
@@ -727,7 +609,7 @@ function CardBack() {
         <div className="tidc-back-content">
           <div className="tidc-back-header">
             <div className="tidc-back-logo">
-              <SchoolCrest size={34} />
+              <SchoolCrest size={48} />
             </div>
           </div>
 
@@ -782,128 +664,19 @@ function CardBack() {
   );
 }
 
+// Teacher self-view: front + back only, no print/export control.
+// Nothing in this component lets the signed-in teacher download,
+// print, or otherwise take a copy of their own ID card — it is
+// view-only on their Profile page.
 export default function TeacherIdCard({ teacher, teacherUsername }) {
-  const joined = formatDate(teacher?.createdAt);
-
-  const handlePrint = () => {
-    const printWindow = window.open("", "_blank", "width=900,height=650");
-    if (!printWindow) return;
-
-    const frontEl = document.getElementById("tidc-print-front");
-    const backEl = document.getElementById("tidc-print-back");
-    if (!frontEl || !backEl) return;
-
-    const frontHtml = frontEl.outerHTML;
-    const backHtml = backEl.outerHTML;
-
-    // Grab only the card's own <style> block (rendered by <CardStyles/>).
-    // The dashboard page can render several other components (Sidebar,
-    // Topbar, etc.) that also inject their own <style> tags, so blindly
-    // grabbing the page's FIRST <style> tag was unreliable — it could grab
-    // an unrelated component's styles instead of the card's, breaking the
-    // print layout. Instead, search every <style> tag on the page for the
-    // one that actually contains the card's own CSS class.
-    const allStyleTags = Array.from(document.querySelectorAll("style"));
-    const cardStyleTag = allStyleTags.find((tag) =>
-      tag.textContent.includes(".tidc-card")
-    );
-    const stylesHtml = cardStyleTag ? cardStyleTag.outerHTML : "";
-
-    printWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Teacher ID Card - ${teacher?.fullName || teacherUsername}</title>
-          <meta charset="utf-8" />
-          ${stylesHtml}
-          <style>
-            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; color-adjust: exact; }
-            body {
-              margin: 0;
-              padding: 24px;
-              display: flex;
-              gap: 24px;
-              flex-wrap: wrap;
-              justify-content: center;
-              background: #eee;
-              font-family: sans-serif;
-            }
-            .tidc-card { box-shadow: 0 4px 14px rgba(0,0,0,0.2); }
-            @media print {
-              body { background: #fff; padding: 0; }
-              .tidc-card-outer { page-break-inside: avoid; }
-            }
-          </style>
-        </head>
-        <body>
-          ${frontHtml}
-          ${backHtml}
-        </body>
-      </html>
-    `);
-    printWindow.document.close();
-
-    // Wait for every image (teacher photo + both QR codes) to finish
-    // loading before triggering print — otherwise the browser can print
-    // a blank box where the QR or photo should be.
-    const waitForImages = () => {
-      const imgs = Array.from(printWindow.document.images);
-      const pending = imgs.filter((img) => !img.complete);
-      if (pending.length === 0) {
-        printWindow.focus();
-        printWindow.print();
-        return;
-      }
-      let remaining = pending.length;
-      pending.forEach((img) => {
-        const done = () => {
-          remaining -= 1;
-          if (remaining === 0) {
-            printWindow.focus();
-            printWindow.print();
-          }
-        };
-        img.addEventListener("load", done, { once: true });
-        img.addEventListener("error", done, { once: true });
-      });
-    };
-
-    setTimeout(waitForImages, 50);
-  };
-
   return (
     <div>
       <CardStyles />
 
       <div className="tidc-wrap">
         <CardFront teacher={teacher} teacherUsername={teacherUsername} />
-        <CardBack teacherUsername={teacherUsername} />
+        <CardBack />
       </div>
-
-      <div className="tidc-print-hide" style={{ display: "flex", justifyContent: "center", marginTop: 4 }}>
-        <button
-          onClick={handlePrint}
-          style={{
-            background: "#14532d",
-            color: "#fff",
-            border: "none",
-            borderRadius: 10,
-            padding: "12px 28px",
-            fontWeight: 700,
-            fontSize: 14,
-            cursor: "pointer",
-            boxShadow: "0 10px 24px rgba(20,83,45,0.35)",
-          }}
-        >
-          🖨️ Print ID Card (Front &amp; Back)
-        </button>
-      </div>
-
-      {joined?.str && (
-        <div style={{ textAlign: "center", fontSize: 11, color: "#8b97b0", marginTop: 10 }}>
-          Joined: {joined.str}
-        </div>
-      )}
     </div>
   );
 }

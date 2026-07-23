@@ -8,6 +8,7 @@ import { LogOut } from "lucide-react";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import MobileBottomNav from "./MobileBottomNav";
+import TeacherIdCard from "./TeacherIdCard";
 
 function ProfileStyles() {
   return (
@@ -103,7 +104,11 @@ export default function Profile() {
         const data = snap.data();
         setTeacher(data);
         setUsername(data.username || "");
-        setPhotoUrl(data.photoUrl || "");
+        // Profile-edit photo field mirrors whichever field is already
+        // populated on the record (some docs use teacherPhoto, older
+        // ones may use photoUrl) so editing here doesn't clobber the
+        // photo the ID card reads from.
+        setPhotoUrl(data.photoUrl || data.teacherPhoto || "");
       }
     } catch (err) {
       console.log(err);
@@ -131,6 +136,7 @@ export default function Profile() {
           updatedAt: new Date(),
         });
         localStorage.setItem("teacherPhoto", resizedDataUrl);
+        setTeacher((prev) => (prev ? { ...prev, photoUrl: resizedDataUrl } : prev));
       }
     } catch (err) {
       console.log(err);
@@ -159,6 +165,7 @@ export default function Profile() {
 
       localStorage.setItem("teacherName", username);
       localStorage.setItem("teacherPhoto", photoUrl);
+      setTeacher((prev) => (prev ? { ...prev, username, photoUrl } : prev));
       alert("Profile updated successfully");
     } catch (err) {
       console.log(err);
@@ -270,6 +277,12 @@ export default function Profile() {
                 >
                   {savingProfile ? "Saving..." : "Save Profile"}
                 </button>
+              </div>
+
+              {/* Teacher ID Card — view only, no print/export available here */}
+              <div className="pf-section" style={section}>
+                <h3 style={sectionTitle}>My Teacher ID Card</h3>
+                <TeacherIdCard teacher={teacher} teacherUsername={username} />
               </div>
 
               <div className="pf-section" style={section}>
