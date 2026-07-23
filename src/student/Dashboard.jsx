@@ -26,6 +26,30 @@ const COLORS = {
   danger: "#ef5a6f",
 };
 
+// Rotating colors for the "#N" session badges, matching the printed timetable design.
+const BADGE_COLORS = [
+  "#6d5df0", // purple
+  "#2a9fb5", // teal
+  "#2fae63", // green
+  "#c99a1e", // gold
+  "#d97b1e", // orange
+  "#c0507a", // pink/rose
+  "#5b4fd6", // indigo
+];
+
+// Rough icon mapping for common subjects, falling back to a generic book icon.
+function subjectIcon(subject) {
+  const s = (subject || "").toLowerCase();
+  if (s.includes("islam")) return "🌙";
+  if (s.includes("arab") || s.includes("afso")) return "📖";
+  if (s.includes("somali")) return "⭐";
+  if (s.includes("cilmi") || s.includes("bio") || s.includes("bilis")) return "🧪";
+  if (s.includes("say") || s.includes("science")) return "🌐";
+  if (s.includes("xisaab") || s.includes("math")) return "🧮";
+  if (s.includes("english") || s.includes("ingiriis")) return "💬";
+  return "📘";
+}
+
 // Class order: 1 -> 8 (primary), then F1 -> F4 (secondary/form)
 const CLASS_ORDER = ["1", "2", "3", "4", "5", "6", "7", "8", "F1", "F2", "F3", "F4"];
 function classRank(className) {
@@ -156,6 +180,39 @@ const NAV_ITEMS = [
   { key: "messages", label: "Messages", icon: "💬" },
 ];
 
+// Loads html2canvas from a CDN on demand (only when the student actually
+// clicks "Download"), snapshots the timetable card, and triggers a PNG
+// download. Falls back to opening a print-friendly window if the canvas
+// library can't be loaded (e.g. network blocked).
+async function downloadTimetableImage({ className, dayLabel }) {
+  const node = document.getElementById("student-timetable-card");
+  if (!node) return;
+
+  try {
+    if (!window.html2canvas) {
+      await new Promise((resolve, reject) => {
+        const script = document.createElement("script");
+        script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js";
+        script.onload = resolve;
+        script.onerror = reject;
+        document.body.appendChild(script);
+      });
+    }
+
+    const canvas = await window.html2canvas(node, {
+      backgroundColor: "#0f1626",
+      scale: 2,
+    });
+    const link = document.createElement("a");
+    link.download = `Timetable-${className || "class"}-${dayLabel || "day"}.png`;
+    link.href = canvas.toDataURL("image/png");
+    link.click();
+  } catch (err) {
+    console.log("Falling back to print view:", err);
+    window.print();
+  }
+}
+
 export default function StudentDashboard() {
   const navigate = useNavigate();
   const studentId = localStorage.getItem("studentId");
@@ -174,6 +231,8 @@ export default function StudentDashboard() {
   const [examWeek, setExamWeek] = useState(null);
   const [activeTimetableDay, setActiveTimetableDay] = useState(DAYS[0].key);
   const [activeExamDay, setActiveExamDay] = useState(DAYS[0].key);
+  // teacherId -> fullName, so each timetable session can show who teaches it
+  const [teacherNames, setTeacherNames] = useState({});
 
   useEffect(() => {
     if (!studentId) {
@@ -200,6 +259,20 @@ export default function StudentDashboard() {
           setAttendance(attSnap.docs.map((d) => ({ id: d.id, ...d.data() })));
         } catch (e) {
           setAttendance([]);
+        }
+
+        // Load every teacher's name once, so timetable sessions (which only
+        // store teacherId) can be displayed with the teacher's full name.
+        try {
+          const teachersSnap = await getDocs(collection(db, "teachers"));
+          const map = {};
+          teachersSnap.docs.forEach((d) => {
+            const data = d.data();
+            map[d.id] = data.fullName || data.username || d.id;
+          });
+          setTeacherNames(map);
+        } catch (e) {
+          setTeacherNames({});
         }
 
         // Load the regular class timetable (timetable collection, doc id
@@ -508,10 +581,43 @@ export default function StudentDashboard() {
             </section>
           )}
 
-          {/* Regular weekly class timetable — read-only, separate from exam timetable */}
+          {/* Regular weekly class timetable — styled to match the official
+              printed timetable design, with a "Download as image" button.
+              Each session shows the teacher's name (not just the subject). */}
           {tab === "timetable" && (
             <section className="rs-panel" style={styles.panel}>
-              <div style={styles.panelTitle}>Class Timetable — {student?.className || "—"}</div>
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: 12,
+                  flexWrap: "wrap",
+                  marginBottom: 16,
+                }}
+              >
+                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                  <div style={styles.timetableIconBadge}>🗓️</div>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: COLORS.text }}>
+                    Class Timetable – {student?.className || "—"}
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+                  <div style={styles.academicYearPill}>🗓️ Academic Year 2024/2025</div>
+                  <button
+                    onClick={() =>
+                      downloadTimetableImage({
+                        className: student?.className,
+                        dayLabel: DAYS.find((d) => d.key === activeTimetableDay)?.label,
+                      })
+                    }
+                    style={styles.downloadBtn}
+                  >
+                    ⬇️ Download
+                  </button>
+                </div>
+              </div>
+
               <div className="rs-day-tabs">
                 {DAYS.map((d) => {
                   const isActive = d.key === activeTimetableDay;
@@ -525,14 +631,14 @@ export default function StudentDashboard() {
                         ...(isActive ? styles.dayTabBtnActive : {}),
                       }}
                     >
-                      {d.label}
+                      📅 {d.label}
                       {hasData && (
                         <span
                           style={{
                             width: 6,
                             height: 6,
                             borderRadius: "50%",
-                            background: isActive ? "#fff" : COLORS.accent,
+                            background: isActive ? "#06231a" : COLORS.accent,
                             marginLeft: 6,
                             display: "inline-block",
                           }}
@@ -551,27 +657,43 @@ export default function StudentDashboard() {
                   return <EmptyState text="No timetable set for this day yet." />;
                 }
                 return (
-                  <div className="rs-table-wrap">
-                    <table className="rs-table" style={styles.table}>
-                      <thead>
-                        <tr>
-                          <th style={styles.th}>#</th>
-                          <th style={styles.th}>Start</th>
-                          <th style={styles.th}>End</th>
-                          <th style={styles.th}>Subject</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {sessions.map((s) => (
-                          <tr key={s.id}>
-                            <td style={styles.td}>{s.sessionNumber}</td>
-                            <td style={styles.td}>{s.startTime}</td>
-                            <td style={styles.td}>{s.endTime}</td>
-                            <td style={styles.td}>{s.subject || "—"}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div id="student-timetable-card" style={styles.ttCard}>
+                    <div className="rs-table-wrap">
+                      <div style={styles.ttCardHeaderRow}>
+                        <div style={styles.ttColNum}>#</div>
+                        <div style={styles.ttColStart}>START</div>
+                        <div style={styles.ttColEnd}>END</div>
+                        <div style={styles.ttColSubject}>SUBJECT</div>
+                        <div style={styles.ttColTeacher}>TEACHER</div>
+                      </div>
+                      {sessions.map((s, i) => {
+                        const badgeColor = BADGE_COLORS[i % BADGE_COLORS.length];
+                        const teacherName =
+                          s.teacherName || teacherNames[s.teacherId] || s.teacherId || "—";
+                        return (
+                          <div key={s.id || i} style={styles.ttRow}>
+                            <div style={{ ...styles.ttNumBadge, background: badgeColor }}>
+                              {s.sessionNumber ?? i + 1}
+                            </div>
+                            <div style={styles.ttColStart}>
+                              <span style={styles.ttClockIcon}>🕐</span> {s.startTime}
+                            </div>
+                            <div style={styles.ttColEnd}>
+                              <span style={{ color: COLORS.textDim, marginRight: 6 }}>→</span>
+                              <span style={styles.ttClockIcon}>🕐</span> {s.endTime}
+                            </div>
+                            <div style={styles.ttColSubject}>
+                              <span style={{ marginRight: 8 }}>{subjectIcon(s.subject)}</span>
+                              {(s.subject || "—").toUpperCase()}
+                            </div>
+                            <div style={styles.ttColTeacher}>{teacherName}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                    <div style={styles.ttFooterNote}>
+                      ℹ️ Timetable is subject to change. Please check regularly for updates.
+                    </div>
                   </div>
                 );
               })()}
@@ -1066,5 +1188,92 @@ const styles = {
     background: COLORS.accent,
     borderColor: COLORS.accent,
     color: "#06231a",
+  },
+
+  // ---- Timetable card (matches the printed reference design) ----
+  timetableIconBadge: {
+    width: 42,
+    height: 42,
+    borderRadius: 12,
+    background: "linear-gradient(135deg,#6d5df0,#8b6cf5)",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: 18,
+    flexShrink: 0,
+  },
+  academicYearPill: {
+    background: COLORS.panelSoft,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 10,
+    padding: "8px 14px",
+    fontSize: 12.5,
+    fontWeight: 600,
+    color: COLORS.textDim,
+    whiteSpace: "nowrap",
+  },
+  downloadBtn: {
+    background: "linear-gradient(135deg,#6d5df0,#8b6cf5)",
+    border: "none",
+    borderRadius: 10,
+    padding: "9px 16px",
+    fontSize: 12.5,
+    fontWeight: 700,
+    color: "#fff",
+    cursor: "pointer",
+    whiteSpace: "nowrap",
+  },
+  ttCard: {
+    background: COLORS.panelSoft,
+    border: `1px solid ${COLORS.border}`,
+    borderRadius: 16,
+    padding: "18px 20px",
+  },
+  ttCardHeaderRow: {
+    display: "grid",
+    gridTemplateColumns: "44px 110px 130px 1fr 1fr",
+    gap: 10,
+    padding: "0 4px 12px",
+    borderBottom: `1px solid ${COLORS.border}`,
+    color: "#8b87ad",
+    fontSize: 11.5,
+    fontWeight: 700,
+    letterSpacing: 0.5,
+    minWidth: 640,
+  },
+  ttRow: {
+    display: "grid",
+    gridTemplateColumns: "44px 110px 130px 1fr 1fr",
+    gap: 10,
+    alignItems: "center",
+    padding: "14px 4px",
+    borderBottom: `1px solid ${COLORS.border}`,
+    minWidth: 640,
+  },
+  ttNumBadge: {
+    width: 30,
+    height: 30,
+    borderRadius: "50%",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    color: "#fff",
+    fontWeight: 800,
+    fontSize: 13,
+  },
+  ttColNum: { textAlign: "left" },
+  ttColStart: { fontWeight: 700, color: COLORS.text, fontSize: 14, whiteSpace: "nowrap" },
+  ttColEnd: { fontWeight: 700, color: COLORS.text, fontSize: 14, whiteSpace: "nowrap" },
+  ttColSubject: { fontWeight: 800, color: COLORS.text, fontSize: 13.5, letterSpacing: 0.3 },
+  ttColTeacher: { fontWeight: 600, color: COLORS.textDim, fontSize: 13 },
+  ttClockIcon: { marginRight: 4 },
+  ttFooterNote: {
+    marginTop: 14,
+    background: "rgba(139,108,245,0.08)",
+    border: "1px solid rgba(139,108,245,0.2)",
+    borderRadius: 10,
+    padding: "10px 14px",
+    fontSize: 12.5,
+    color: COLORS.textDim,
   },
 };
