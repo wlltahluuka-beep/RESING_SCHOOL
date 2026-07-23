@@ -24,6 +24,7 @@ import AddCashier from "./admin/pages/AddCashier";
 import Cashiers from "./admin/pages/Cashiers";
 import Messages from "./admin/pages/Messages";
 import EditTeacher from "./admin/pages/EditTeacher";
+import Shifts from "./admin/pages/Shifts";
 
 
 // STUDENT / PARENT
@@ -81,6 +82,7 @@ function App() {
         <Route path="/admin/messages" element={<Messages />} />
         <Route path="/admin/timetable" element={<Timetable />} />
         <Route path="/admin/exam-timetable" element={<ExamTimetable />} />
+        <Route path="/admin/shifts" element={<Shifts />} />
 
         {/* Dhammaan boggagga Teacher waxay ku jiraan MessagesProvider hal mar,
             si Sidebar/Topbar/Messages ay isku wadaagaan xogta fariimaha */}
