@@ -3,6 +3,7 @@ import { useState } from "react";
 import { Mail, MailOpen, X } from "lucide-react";
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import MobileBottomNav from "./MobileBottomNav";
 import { useMessages } from "../context/MessagesContext"; // Hubi path-kan
 
 function MessagesStyles() {
@@ -185,6 +186,9 @@ export default function Messages() {
           </div>
         </div>
       </div>
+
+      {/* Bottom tab bar — mobile only (hidden via CSS on desktop) */}
+      <MobileBottomNav />
 
       {/* ---- Modal ---- */}
       {openMsg && (

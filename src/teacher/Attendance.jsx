@@ -13,6 +13,39 @@ import { Users, UserCheck, UserX, Clock } from "lucide-react";
 
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import MobileBottomNav from "./MobileBottomNav";
+
+function AttendanceStyles() {
+  return (
+    <style>{`
+      .att-layout { display: flex; min-height: 100vh; background: #05070D; }
+      .att-content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+      .att-body { padding: 0 20px 30px; }
+      .att-cards-row {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        margin-bottom: 24px;
+      }
+      .att-filters-row { display: flex; gap: 20px; flex-wrap: wrap; }
+      .att-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .att-table { width: 100%; border-collapse: collapse; min-width: 560px; }
+
+      @media (max-width: 900px) {
+        .att-body { padding: 0 14px 90px; }
+        .att-panel { padding: 16px !important; border-radius: 16px !important; }
+        .att-cards-row { grid-template-columns: 1fr 1fr; gap: 12px; }
+        .att-filters-row { gap: 12px; }
+        .att-filters-row > div { min-width: 0 !important; flex: 1 1 45%; }
+      }
+
+      @media (max-width: 480px) {
+        .att-cards-row { grid-template-columns: 1fr 1fr; }
+        .att-filters-row > div { flex: 1 1 100%; }
+      }
+    `}</style>
+  );
+}
 
 export default function Attendance() {
   const [classes, setClasses] = useState([]);
@@ -208,13 +241,14 @@ export default function Attendance() {
   );
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#05070D" }}>
+    <div className="att-layout">
+      <AttendanceStyles />
       <Sidebar teacherName={teacherName} />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <div className="att-content">
         <Topbar teacherName={teacherName} />
 
-        <div style={{ padding: "0 20px 30px" }}>
+        <div className="att-body">
           {sessionSaved && (
             <div style={lockedBanner}>
               🔒 Xaadirintii maalintan ({date}) waa la kaydiyay ee waa la
@@ -223,8 +257,8 @@ export default function Attendance() {
           )}
 
           {/* Summary cards */}
-          <div style={cardsRow}>
-            <div style={card}>
+          <div className="att-cards-row">
+            <div className="att-panel" style={card}>
               <div style={{ ...iconCircle, background: "rgba(109,93,240,0.15)" }}>
                 <Users size={20} color="#6D5DF0" />
               </div>
@@ -234,7 +268,7 @@ export default function Attendance() {
               </div>
             </div>
 
-            <div style={card}>
+            <div className="att-panel" style={card}>
               <div style={{ ...iconCircle, background: "rgba(34,197,94,0.15)" }}>
                 <UserCheck size={20} color="#22C55E" />
               </div>
@@ -244,7 +278,7 @@ export default function Attendance() {
               </div>
             </div>
 
-            <div style={card}>
+            <div className="att-panel" style={card}>
               <div style={{ ...iconCircle, background: "rgba(239,68,68,0.15)" }}>
                 <UserX size={20} color="#EF4444" />
               </div>
@@ -254,7 +288,7 @@ export default function Attendance() {
               </div>
             </div>
 
-            <div style={card}>
+            <div className="att-panel" style={card}>
               <div style={{ ...iconCircle, background: "rgba(23,162,184,0.15)" }}>
                 <Clock size={20} color="#17A2B8" />
               </div>
@@ -266,8 +300,8 @@ export default function Attendance() {
           </div>
 
           {/* Filters */}
-          <div style={filterCard}>
-            <div style={filtersRow}>
+          <div className="att-panel" style={filterCard}>
+            <div className="att-filters-row">
               <div>
                 <label style={label}>Class</label>
                 <select
@@ -334,7 +368,7 @@ export default function Attendance() {
           </div>
 
           {/* Table */}
-          <div style={tableCard}>
+          <div className="att-panel" style={tableCard}>
             {loading ? (
               <p style={{ padding: 20, color: "#94A3B8" }}>Loading students...</p>
             ) : students.length === 0 ? (
@@ -344,90 +378,92 @@ export default function Attendance() {
                   : "Select a class to load students."}
               </p>
             ) : (
-              <table style={table}>
-                <thead>
-                  <tr>
-                    <th style={th}>#</th>
-                    <th style={th}>Student Name</th>
-                    <th style={th}>Student ID</th>
-                    <th style={th}>Status</th>
-                    <th style={th}>Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredStudents.map((s, i) => (
-                    <tr key={s.id}>
-                      <td style={td}>{i + 1}</td>
-                      <td style={{ ...td, display: "flex", alignItems: "center", gap: 10 }}>
-                        <div
-                          style={{
-                            ...avatar,
-                            background: s.studentPhoto
-                              ? `url(${s.studentPhoto}) center/cover`
-                              : "linear-gradient(135deg,#6D5DF0,#8B5CF6)",
-                          }}
-                        >
-                          {!s.studentPhoto &&
-                            (s.fullName || "?").charAt(0).toUpperCase()}
-                        </div>
-                        {s.fullName}
-                      </td>
-                      <td style={td}>
-                        <span style={idBadge}>{s.studentId || s.id}</span>
-                      </td>
-                      <td style={td}>
-                        <span
-                          style={{
-                            ...statusBadge,
-                            background:
-                              attendance[s.id] === "Present"
-                                ? "rgba(34,197,94,0.15)"
-                                : "rgba(239,68,68,0.15)",
-                            color:
-                              attendance[s.id] === "Present" ? "#22C55E" : "#EF4444",
-                          }}
-                        >
-                          ● {attendance[s.id] || "Present"}
-                        </span>
-                      </td>
-                      <td style={td}>
-                        <div style={{ display: "flex", gap: 8 }}>
-                          <button
-                            onClick={() => setStatus(s.id, "Present")}
-                            disabled={sessionSaved}
-                            title="Present"
-                            style={{
-                              ...circleBtn,
-                              background:
-                                attendance[s.id] === "Present" ? "#22C55E" : "#1F2937",
-                              color: attendance[s.id] === "Present" ? "white" : "#94A3B8",
-                              cursor: sessionSaved ? "not-allowed" : "pointer",
-                              opacity: sessionSaved ? 0.6 : 1,
-                            }}
-                          >
-                            ✓
-                          </button>
-                          <button
-                            onClick={() => setStatus(s.id, "Absent")}
-                            disabled={sessionSaved}
-                            title="Absent"
-                            style={{
-                              ...circleBtn,
-                              background:
-                                attendance[s.id] === "Absent" ? "#EF4444" : "#1F2937",
-                              color: attendance[s.id] === "Absent" ? "white" : "#94A3B8",
-                              cursor: sessionSaved ? "not-allowed" : "pointer",
-                              opacity: sessionSaved ? 0.6 : 1,
-                            }}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      </td>
+              <div className="att-table-wrap">
+                <table className="att-table">
+                  <thead>
+                    <tr>
+                      <th style={th}>#</th>
+                      <th style={th}>Student Name</th>
+                      <th style={th}>Student ID</th>
+                      <th style={th}>Status</th>
+                      <th style={th}>Action</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {filteredStudents.map((s, i) => (
+                      <tr key={s.id}>
+                        <td style={td}>{i + 1}</td>
+                        <td style={{ ...td, display: "flex", alignItems: "center", gap: 10 }}>
+                          <div
+                            style={{
+                              ...avatar,
+                              background: s.studentPhoto
+                                ? `url(${s.studentPhoto}) center/cover`
+                                : "linear-gradient(135deg,#6D5DF0,#8B5CF6)",
+                            }}
+                          >
+                            {!s.studentPhoto &&
+                              (s.fullName || "?").charAt(0).toUpperCase()}
+                          </div>
+                          {s.fullName}
+                        </td>
+                        <td style={td}>
+                          <span style={idBadge}>{s.studentId || s.id}</span>
+                        </td>
+                        <td style={td}>
+                          <span
+                            style={{
+                              ...statusBadge,
+                              background:
+                                attendance[s.id] === "Present"
+                                  ? "rgba(34,197,94,0.15)"
+                                  : "rgba(239,68,68,0.15)",
+                              color:
+                                attendance[s.id] === "Present" ? "#22C55E" : "#EF4444",
+                            }}
+                          >
+                            ● {attendance[s.id] || "Present"}
+                          </span>
+                        </td>
+                        <td style={td}>
+                          <div style={{ display: "flex", gap: 8 }}>
+                            <button
+                              onClick={() => setStatus(s.id, "Present")}
+                              disabled={sessionSaved}
+                              title="Present"
+                              style={{
+                                ...circleBtn,
+                                background:
+                                  attendance[s.id] === "Present" ? "#22C55E" : "#1F2937",
+                                color: attendance[s.id] === "Present" ? "white" : "#94A3B8",
+                                cursor: sessionSaved ? "not-allowed" : "pointer",
+                                opacity: sessionSaved ? 0.6 : 1,
+                              }}
+                            >
+                              ✓
+                            </button>
+                            <button
+                              onClick={() => setStatus(s.id, "Absent")}
+                              disabled={sessionSaved}
+                              title="Absent"
+                              style={{
+                                ...circleBtn,
+                                background:
+                                  attendance[s.id] === "Absent" ? "#EF4444" : "#1F2937",
+                                color: attendance[s.id] === "Absent" ? "white" : "#94A3B8",
+                                cursor: sessionSaved ? "not-allowed" : "pointer",
+                                opacity: sessionSaved ? 0.6 : 1,
+                              }}
+                            >
+                              ✕
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
 
@@ -452,6 +488,9 @@ export default function Attendance() {
           )}
         </div>
       </div>
+
+      {/* Bottom tab bar — mobile only (hidden via CSS on desktop) */}
+      <MobileBottomNav />
     </div>
   );
 }
@@ -465,12 +504,6 @@ const lockedBanner = {
   marginBottom: 20,
   fontSize: 14,
   fontWeight: "bold",
-};
-const cardsRow = {
-  display: "grid",
-  gridTemplateColumns: "repeat(4, 1fr)",
-  gap: 20,
-  marginBottom: 24,
 };
 const card = {
   background: "#0B1120",
@@ -506,11 +539,6 @@ const filterCard = {
   padding: 20,
   marginBottom: 20,
 };
-const filtersRow = {
-  display: "flex",
-  gap: 20,
-  flexWrap: "wrap",
-};
 const label = {
   display: "block",
   fontWeight: "bold",
@@ -540,11 +568,7 @@ const tableCard = {
   background: "#0B1120",
   border: "1px solid rgba(255,255,255,.06)",
   borderRadius: 20,
-  overflowX: "auto",
-};
-const table = {
-  width: "100%",
-  borderCollapse: "collapse",
+  overflow: "hidden",
 };
 const th = {
   textAlign: "left",

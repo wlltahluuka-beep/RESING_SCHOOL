@@ -20,6 +20,7 @@ import { FileEdit, FileText, Send } from "lucide-react";
 
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import MobileBottomNav from "./MobileBottomNav";
 
 const subjects = [
   "Math",
@@ -347,6 +348,9 @@ export default function Exams() {
           </div>
         </div>
       </div>
+
+      {/* Bottom tab bar — mobile only (hidden via CSS on desktop) */}
+      <MobileBottomNav />
     </div>
   );
 }

@@ -18,6 +18,7 @@ import { BarChart3, Printer, Send, Lock } from "lucide-react";
 
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import MobileBottomNav from "./MobileBottomNav";
 
 function ResultsStyles() {
   return (
@@ -512,6 +513,9 @@ export default function Results() {
           </div>
         </div>
       </div>
+
+      {/* Bottom tab bar — mobile only (hidden via CSS on desktop) */}
+      <MobileBottomNav />
     </div>
   );
 }
