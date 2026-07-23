@@ -21,6 +21,7 @@ import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
 import TeacherIdCard from "./TeacherIdCard";
 import MobileBottomNav from "./MobileBottomNav";
+import ShiftClock from "./ShiftClock";
 import { useMessages } from "../context/MessagesContext"; // Hubi path-kan
 
 function DashboardStyles() {
@@ -243,6 +244,9 @@ export default function Dashboard() {
                 );
               })}
             </div>
+
+            {/* Shift Clock In / Out */}
+            <ShiftClock />
 
             {/* My Teacher ID Card */}
             <div

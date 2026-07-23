@@ -6,6 +6,32 @@ import { GraduationCap, Search, X, CalendarCheck2 } from "lucide-react";
 
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import MobileBottomNav from "./MobileBottomNav";
+
+function StudentsStyles() {
+  return (
+    <style>{`
+      .st-layout { display: flex; min-height: 100vh; background: #05070D; }
+      .st-content { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+      .st-body { padding: 0 20px 30px; }
+      .st-filters-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 16px;
+      }
+      .st-main-row { display: flex; gap: 20px; align-items: flex-start; flex-wrap: wrap; }
+      .st-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+      .st-table { width: 100%; border-collapse: collapse; min-width: 620px; }
+
+      @media (max-width: 900px) {
+        .st-body { padding: 0 14px 90px; }
+        .st-panel { padding: 16px !important; border-radius: 16px !important; }
+        .st-filters-grid { grid-template-columns: 1fr; gap: 12px; }
+        .st-main-row { gap: 14px; }
+      }
+    `}</style>
+  );
+}
 
 export default function Students() {
   const [classes, setClasses] = useState([]);
@@ -158,15 +184,16 @@ export default function Students() {
   };
 
   return (
-    <div style={{ display: "flex", minHeight: "100vh", background: "#05070D" }}>
+    <div className="st-layout">
+      <StudentsStyles />
       <Sidebar teacherName={teacherName} />
 
-      <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+      <div className="st-content">
         <Topbar teacherName={teacherName} />
 
-        <div style={{ padding: "0 20px 30px" }}>
+        <div className="st-body">
           {/* Filters */}
-          <div style={filterCard}>
+          <div className="st-panel" style={filterCard}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
               <div style={iconCircle}>
                 <GraduationCap size={20} color="#8B5CF6" />
@@ -174,7 +201,7 @@ export default function Students() {
               <h3 style={{ margin: 0, color: "#fff" }}>My Students</h3>
             </div>
 
-            <div style={filtersGrid}>
+            <div className="st-filters-grid">
               <div>
                 <label style={label}>Class</label>
                 <select
@@ -217,78 +244,80 @@ export default function Students() {
 
           {/* Table + profile */}
           {loading ? (
-            <div style={tableCard}>
+            <div className="st-panel" style={tableCard}>
               <p style={{ padding: 20, color: "#94A3B8" }}>Loading students...</p>
             </div>
           ) : filteredStudents.length === 0 ? (
-            <div style={tableCard}>
+            <div className="st-panel" style={tableCard}>
               <p style={{ padding: 20, color: "#94A3B8" }}>No students found.</p>
             </div>
           ) : (
-            <div style={{ display: "flex", gap: 20, alignItems: "flex-start", flexWrap: "wrap" }}>
-              <div style={{ ...tableCard, flex: 2, minWidth: 320 }}>
-                <table style={table}>
-                  <thead>
-                    <tr>
-                      <th style={th}>Name</th>
-                      <th style={th}>Class</th>
-                      <th style={th}>Student Phone</th>
-                      <th style={th}>Parent Phone</th>
-                      <th style={th}>Attendance %</th>
-                      <th style={th}></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredStudents.map((s) => {
-                      const att = attendanceMap[s.id];
-                      const pct = att ? att.pct : 0;
-                      const ac = attendanceColor(pct);
-                      return (
-                        <tr key={s.id}>
-                          <td style={{ ...td, display: "flex", alignItems: "center", gap: 10 }}>
-                            <div style={avatar}>
-                              {(s.fullName || "?").charAt(0).toUpperCase()}
-                            </div>
-                            {s.fullName}
-                          </td>
-                          <td style={td}>{s.className}</td>
-                          <td style={td}>{s.studentPhone || "-"}</td>
-                          <td style={td}>{s.parentPhone || "-"}</td>
-                          <td style={td}>
-                            {att ? (
-                              <span
-                                style={{
-                                  background: ac.bg,
-                                  color: ac.fg,
-                                  padding: "4px 12px",
-                                  borderRadius: 20,
-                                  fontWeight: 700,
-                                  fontSize: 13,
-                                }}
+            <div className="st-main-row">
+              <div className="st-panel" style={{ ...tableCard, flex: 2, minWidth: 320 }}>
+                <div className="st-table-wrap">
+                  <table className="st-table">
+                    <thead>
+                      <tr>
+                        <th style={th}>Name</th>
+                        <th style={th}>Class</th>
+                        <th style={th}>Student Phone</th>
+                        <th style={th}>Parent Phone</th>
+                        <th style={th}>Attendance %</th>
+                        <th style={th}></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredStudents.map((s) => {
+                        const att = attendanceMap[s.id];
+                        const pct = att ? att.pct : 0;
+                        const ac = attendanceColor(pct);
+                        return (
+                          <tr key={s.id}>
+                            <td style={{ ...td, display: "flex", alignItems: "center", gap: 10 }}>
+                              <div style={avatar}>
+                                {(s.fullName || "?").charAt(0).toUpperCase()}
+                              </div>
+                              {s.fullName}
+                            </td>
+                            <td style={td}>{s.className}</td>
+                            <td style={td}>{s.studentPhone || "-"}</td>
+                            <td style={td}>{s.parentPhone || "-"}</td>
+                            <td style={td}>
+                              {att ? (
+                                <span
+                                  style={{
+                                    background: ac.bg,
+                                    color: ac.fg,
+                                    padding: "4px 12px",
+                                    borderRadius: 20,
+                                    fontWeight: 700,
+                                    fontSize: 13,
+                                  }}
+                                >
+                                  {pct}% ({att.present}/{att.total})
+                                </span>
+                              ) : (
+                                <span style={{ color: "#94A3B8", fontSize: 13 }}>No data</span>
+                              )}
+                            </td>
+                            <td style={td}>
+                              <button
+                                style={btnSecondary}
+                                onClick={() => setSelectedStudent(s)}
                               >
-                                {pct}% ({att.present}/{att.total})
-                              </span>
-                            ) : (
-                              <span style={{ color: "#94A3B8", fontSize: 13 }}>No data</span>
-                            )}
-                          </td>
-                          <td style={td}>
-                            <button
-                              style={btnSecondary}
-                              onClick={() => setSelectedStudent(s)}
-                            >
-                              View Profile
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                                View Profile
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
               </div>
 
               {selectedStudent && (
-                <div style={profileCard}>
+                <div className="st-panel" style={profileCard}>
                   <button style={closeBtn} onClick={() => setSelectedStudent(null)}>
                     <X size={16} />
                   </button>
@@ -365,6 +394,9 @@ export default function Students() {
           )}
         </div>
       </div>
+
+      {/* Bottom tab bar — mobile only (hidden via CSS on desktop) */}
+      <MobileBottomNav />
     </div>
   );
 }
@@ -385,11 +417,6 @@ const iconCircle = {
   alignItems: "center",
   justifyContent: "center",
   flexShrink: 0,
-};
-const filtersGrid = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
-  gap: 16,
 };
 const label = {
   display: "block",
@@ -413,22 +440,20 @@ const tableCard = {
   borderRadius: 20,
   overflow: "hidden",
 };
-const table = {
-  width: "100%",
-  borderCollapse: "collapse",
-};
 const th = {
   textAlign: "left",
   padding: "12px 20px",
   borderBottom: "1px solid rgba(255,255,255,.08)",
   color: "#94A3B8",
   fontSize: 13,
+  whiteSpace: "nowrap",
 };
 const td = {
   padding: "12px 20px",
   borderBottom: "1px solid rgba(255,255,255,.05)",
   fontSize: 14,
   color: "#E5E7EB",
+  whiteSpace: "nowrap",
 };
 const avatar = {
   width: 32,

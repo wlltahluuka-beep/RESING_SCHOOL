@@ -7,6 +7,7 @@ import { LogOut } from "lucide-react";
 
 import Sidebar from "./Sidebar";
 import Topbar from "./Topbar";
+import MobileBottomNav from "./MobileBottomNav";
 
 function ProfileStyles() {
   return (
@@ -26,6 +27,45 @@ function ProfileStyles() {
   );
 }
 
+// Shrinks an uploaded photo down to a small square-ish JPEG before it's
+// stored. Without this, a phone-camera photo can be several MB as a
+// base64 string, which is too big for a Firestore document field (1MB
+// per doc) — the save silently fails and the photo never makes it to
+// other devices, even though it "looks fine" on the device that picked
+// it (that device is just showing its own local file preview).
+function resizeImageToDataUrl(file, maxSize = 300, quality = 0.82) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("Could not read the file"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Could not read the image"));
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > height) {
+          if (width > maxSize) {
+            height = Math.round((height * maxSize) / width);
+            width = maxSize;
+          }
+        } else if (height > maxSize) {
+          width = Math.round((width * maxSize) / height);
+          height = maxSize;
+        }
+
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, width, height);
+
+        resolve(canvas.toDataURL("image/jpeg", quality));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 export default function Profile() {
   const navigate = useNavigate();
   const teacherId = localStorage.getItem("teacherId") || "";
@@ -35,6 +75,7 @@ export default function Profile() {
 
   const [username, setUsername] = useState("");
   const [photoUrl, setPhotoUrl] = useState("");
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -71,15 +112,34 @@ export default function Profile() {
     }
   };
 
-  const handlePhotoChange = (e) => {
+  // Picking a new photo now saves it to Firestore immediately — the
+  // teacher doesn't have to separately remember to hit "Save Profile"
+  // just to get the photo to sync to their other device (phone).
+  const handlePhotoChange = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      setPhotoUrl(reader.result);
-    };
-    reader.readAsDataURL(file);
+    try {
+      setUploadingPhoto(true);
+
+      const resizedDataUrl = await resizeImageToDataUrl(file);
+      setPhotoUrl(resizedDataUrl);
+
+      if (teacherId) {
+        await updateDoc(doc(db, "teachers", teacherId), {
+          photoUrl: resizedDataUrl,
+          updatedAt: new Date(),
+        });
+        localStorage.setItem("teacherPhoto", resizedDataUrl);
+      }
+    } catch (err) {
+      console.log(err);
+      alert("Sawirka lama kaydin karin. Isku day sawir kale oo yar.");
+    } finally {
+      setUploadingPhoto(false);
+      // allow re-selecting the same file again later
+      e.target.value = "";
+    }
   };
 
   const saveProfile = async () => {
@@ -177,12 +237,19 @@ export default function Profile() {
                     </div>
                   )}
 
-                  <label style={uploadBtn}>
-                    Change Photo
+                  <label
+                    style={{
+                      ...uploadBtn,
+                      opacity: uploadingPhoto ? 0.6 : 1,
+                      cursor: uploadingPhoto ? "not-allowed" : "pointer",
+                    }}
+                  >
+                    {uploadingPhoto ? "Uploading..." : "Change Photo"}
                     <input
                       type="file"
                       accept="image/*"
                       onChange={handlePhotoChange}
+                      disabled={uploadingPhoto}
                       style={{ display: "none" }}
                     />
                   </label>
@@ -250,6 +317,9 @@ export default function Profile() {
           )}
         </div>
       </div>
+
+      {/* Bottom tab bar — mobile only (hidden via CSS on desktop) */}
+      <MobileBottomNav />
     </div>
   );
 }
