@@ -1,7 +1,6 @@
 // src/pages/Home.jsx
 import "../styles/home.css";
 import logo from "../assets/logo.png";
-import heroPhoto from "../assets/hero-students.jpg";
 import { Link } from "react-router-dom";
 import { useState, useRef, useEffect } from "react";
 
@@ -207,7 +206,7 @@ export default function Home() {
           </div>
 
           <Link to="/profile" className="header-avatar" aria-label="Profile">
-            <img src={heroPhoto} alt="" />
+            <img src={logo} alt="" />
           </Link>
         </div>
       </header>
@@ -235,7 +234,9 @@ export default function Home() {
         </div>
 
         <div className="hero-art">
-          <img src={heroPhoto} alt="Rising Star School students" className="hero-photo" />
+          {/* TODO: place a real photo at src/assets/hero-students.jpg and
+              swap this placeholder back to <img src={heroPhoto} .../> */}
+          <div className="hero-photo hero-photo-placeholder">🏫</div>
         </div>
 
         <div className="hero-side">
