@@ -48,7 +48,7 @@ import CashierReports from "./cashier/Reports";
 import CashierProfile from "./cashier/Profile";
 import ReceiptModal from "./cashier/ReceiptModal";
 import ExamCards from "./admin/pages/ExamCards";
-
+import ExamPayments from "./cashier/ExamPayments";
 function App() {
   return (
     <BrowserRouter>
@@ -66,6 +66,7 @@ function App() {
 
         <Route path="/student/dashboard" element={<StudentDashboard />} />
         <Route path="/parent/dashboard" element={<ParentDashboard />} />
+        <Route path="/cashier/exam-payments" element={<ExamPayments />} />
 
         <Route path="/admin/dashboard" element={<Dashboard />} />
         <Route path="/admin/add-student" element={<AddStudent />} />

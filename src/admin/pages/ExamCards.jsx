@@ -1,21 +1,7 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { db } from "../../firebase/firebase";
-import {
-  collection,
-  getDocs,
-  query,
-  where,
-  doc,
-  runTransaction,
-} from "firebase/firestore";
-import {
-  IdCard,
-  Printer,
-  Loader2,
-  Search,
-  CheckSquare,
-  ChevronDown,
-} from "lucide-react";
+import { collection, getDocs } from "firebase/firestore";
+import { IdCard, Printer, Search } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
 
@@ -39,12 +25,9 @@ function pad4(n) {
   return String(n).padStart(4, "0");
 }
 
-function todayStr() {
-  const d = new Date();
-  return `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(
-    2,
-    "0"
-  )}/${d.getFullYear()}`;
+function formatDate(ts) {
+  if (!ts?.seconds) return new Date().toLocaleDateString("en-GB");
+  return new Date(ts.seconds * 1000).toLocaleDateString("en-GB");
 }
 
 function ExamCardStyles() {
@@ -68,16 +51,15 @@ function ExamCardStyles() {
   );
 }
 
-function ExamCard({ student, className, cardNo, examLabel }) {
+function ExamCard({ card }) {
+  const examLabel = EXAM_TYPES.find((t) => t.key === card.examType)?.label || "Final";
   return (
     <div
       className="ec-card"
       style={{
-        background:
-          "repeating-linear-gradient(135deg, #FBF4C9 0 40px, #FAF1BE 40px 80px)",
+        background: "repeating-linear-gradient(135deg, #FBF4C9 0 40px, #FAF1BE 40px 80px)",
         border: "10px solid transparent",
-        borderImage:
-          "repeating-linear-gradient(45deg,#5c3a21 0 6px,#7a4e2a 6px 12px) 12",
+        borderImage: "repeating-linear-gradient(45deg,#5c3a21 0 6px,#7a4e2a 6px 12px) 12",
         borderRadius: 4,
         padding: "18px 24px",
         position: "relative",
@@ -85,37 +67,12 @@ function ExamCard({ student, className, cardNo, examLabel }) {
         fontFamily: "Georgia, 'Times New Roman', serif",
       }}
     >
-      <div
-        style={{
-          border: "2px solid #6b3f1d",
-          borderRadius: 2,
-          padding: "16px 20px",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 14,
-            marginBottom: 6,
-          }}
-        >
-          <div style={{ textAlign: "center" }}>
-            <div
-              style={{
-                fontWeight: 800,
-                fontSize: 17,
-                color: "#0f5132",
-                letterSpacing: 0.3,
-              }}
-            >
-              {SCHOOL_NAME_EN}
-            </div>
-            <div style={{ fontWeight: 700, fontSize: 15, color: "#0f5132" }}>
-              {SCHOOL_NAME_AR}
-            </div>
+      <div style={{ border: "2px solid #6b3f1d", borderRadius: 2, padding: "16px 20px" }}>
+        <div style={{ textAlign: "center", marginBottom: 6 }}>
+          <div style={{ fontWeight: 800, fontSize: 17, color: "#0f5132", letterSpacing: 0.3 }}>
+            {SCHOOL_NAME_EN}
           </div>
+          <div style={{ fontWeight: 700, fontSize: 15, color: "#0f5132" }}>{SCHOOL_NAME_AR}</div>
         </div>
 
         <div
@@ -142,34 +99,27 @@ function ExamCard({ student, className, cardNo, examLabel }) {
           </div>
           <div style={{ fontSize: 13 }}>
             <div>
-              DATE: <strong>{todayStr()}</strong>
+              DATE: <strong>{formatDate(card.createdAt)}</strong>
             </div>
             <div>
-              CARD NO: <strong>{pad4(cardNo)}</strong>
+              CARD NO: <strong>{pad4(card.cardNo)}</strong>
             </div>
           </div>
         </div>
 
         <div style={{ fontSize: 14, marginBottom: 6 }}>
-          NAME OF STUDENT: <strong>{student.fullName}</strong>
+          NAME OF STUDENT: <strong>{card.studentName}</strong>
         </div>
         <div style={{ fontSize: 14, marginBottom: 10, display: "flex", gap: 24 }}>
           <span>
-            CLASS: <strong>{className}</strong>
+            CLASS: <strong>{card.className}</strong>
           </span>
           <span>
-            ROLL NO: <strong>{student.studentId}</strong>
+            ROLL NO: <strong>{card.studentId}</strong>
           </span>
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            gap: 16,
-            marginTop: 4,
-          }}
-        >
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 16, marginTop: 4 }}>
           {EXAM_TYPES.map((t) => (
             <label
               key={t.key}
@@ -188,10 +138,7 @@ function ExamCard({ student, className, cardNo, examLabel }) {
                   height: 15,
                   border: "1.5px solid #1a1a1a",
                   display: "inline-block",
-                  background:
-                    examLabel && t.label.toLowerCase() === examLabel.toLowerCase()
-                      ? "#0f5132"
-                      : "transparent",
+                  background: t.label === examLabel ? "#0f5132" : "transparent",
                 }}
               />
               {t.label}
@@ -199,16 +146,17 @@ function ExamCard({ student, className, cardNo, examLabel }) {
           ))}
         </div>
 
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "flex-end",
-            marginTop: 20,
-          }}
-        >
+        <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 20 }}>
           <div style={{ textAlign: "center", minWidth: 180 }}>
             <div style={{ height: 32 }} />
-            <div style={{ borderTop: "1.5px solid #1a1a1a", paddingTop: 4, fontSize: 12, fontWeight: 700 }}>
+            <div
+              style={{
+                borderTop: "1.5px solid #1a1a1a",
+                paddingTop: 4,
+                fontSize: 12,
+                fontWeight: 700,
+              }}
+            >
               Principal's Signature
             </div>
           </div>
@@ -220,112 +168,55 @@ function ExamCard({ student, className, cardNo, examLabel }) {
 
 export default function ExamCards() {
   const [loading, setLoading] = useState(true);
-  const [students, setStudents] = useState([]);
+  const [cards, setCards] = useState([]);
   const [selectedClass, setSelectedClass] = useState(null);
-  const [examType, setExamType] = useState(EXAM_TYPES[0].key);
   const [search, setSearch] = useState("");
-  const [cardNos, setCardNos] = useState({}); // studentId -> cardNo
-  const [generating, setGenerating] = useState(false);
-  const printRef = useRef(null);
 
   useEffect(() => {
     load();
   }, []);
 
+  // ---- Kaliya soo aqri examCards collection-ka — waxaa ka buuxiya
+  // Cashierka marka uu arday lacagta imtixaanka ka qaado (ExamPayments
+  // page-ka). Admin-ku halkan wuxuu daawadaa oo daabici karaa kaliya,
+  // ma sameeynayo card cusub. ----
   async function load() {
     try {
       setLoading(true);
-      const snap = await getDocs(collection(db, "students"));
-      const data = snap.docs
-        .map((d) => ({ id: d.id, ...d.data() }))
-        .filter((s) => s.studentId && s.fullName && s.className);
-      setStudents(data);
+      const snap = await getDocs(collection(db, "examCards"));
+      const data = snap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setCards(data);
     } catch (err) {
       console.log(err);
-      alert("Khalad ayaa dhacay marka ardayda la soo qaadanayay: " + err.message);
+      alert("Khalad ayaa dhacay marka Exam Cards la soo qaadanayay: " + err.message);
     } finally {
       setLoading(false);
     }
   }
 
   const classes = useMemo(() => {
-    const set = new Set(students.map((s) => s.className));
+    const set = new Set(cards.map((c) => c.className).filter(Boolean));
     return [...set].sort((a, b) => classRank(a) - classRank(b));
-  }, [students]);
+  }, [cards]);
 
-  const studentsForClass = useMemo(() => {
+  const cardsForClass = useMemo(() => {
     if (!selectedClass) return [];
-    return students
-      .filter((s) => String(s.className).toUpperCase() === String(selectedClass).toUpperCase())
-      .filter((s) => {
+    return cards
+      .filter((c) => String(c.className).toUpperCase() === String(selectedClass).toUpperCase())
+      .filter((c) => {
         const t = search.toLowerCase();
         return (
           !t ||
-          s.fullName.toLowerCase().includes(t) ||
-          String(s.studentId).toLowerCase().includes(t)
+          (c.studentName || "").toLowerCase().includes(t) ||
+          String(c.studentId).toLowerCase().includes(t)
         );
       })
-      .sort((a, b) => (a.fullName || "").localeCompare(b.fullName || ""));
-  }, [students, selectedClass, search]);
-
-  // ---- Sameyso Card No oo si otomatig ah u kordha, kuna kaydsan
-  // Firestore-ka gudihiisa (examCardCounters/{examType}) si card
-  // number-ku marnaba aan isu soo celin marka la print-gareeyo mar
-  // labaad. Waxaa la isticmaalaa transaction si labo isku mar u
-  // dhicin ay u helaan number isku mid ah. ----
-  async function generateCardNumbers() {
-    if (!selectedClass || studentsForClass.length === 0) return;
-    setGenerating(true);
-    try {
-      const counterId = examType; // hal counter halkiiba nooca imtixaanka
-      const counterRef = doc(db, "examCardCounters", counterId);
-      const newNos = {};
-
-      await runTransaction(db, async (tx) => {
-        const counterSnap = await tx.get(counterRef);
-        let current = counterSnap.exists() ? counterSnap.data().lastNumber || 0 : 0;
-
-        // Haddii ardaygan cardNo horey loo siiyay noocan imtixaanka
-        // (assigned map ku jira counter doc-ka), isku mid ku isticmaal
-        // si aan Card No loo isbedelin marka la daabaco mar labaad.
-        const assigned = counterSnap.exists() ? counterSnap.data().assigned || {} : {};
-
-        studentsForClass.forEach((s) => {
-          if (assigned[s.studentId]) {
-            newNos[s.studentId] = assigned[s.studentId];
-          } else {
-            current += 1;
-            assigned[s.studentId] = current;
-            newNos[s.studentId] = current;
-          }
-        });
-
-        tx.set(
-          counterRef,
-          { lastNumber: current, assigned, examType, updatedAt: new Date() },
-          { merge: true }
-        );
-      });
-
-      setCardNos((prev) => ({ ...prev, ...newNos }));
-    } catch (err) {
-      console.log(err);
-      alert("Khalad ayaa dhacay marka Card No la sameynayay: " + err.message);
-    } finally {
-      setGenerating(false);
-    }
-  }
-
-  useEffect(() => {
-    if (selectedClass) generateCardNumbers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedClass, examType, students]);
+      .sort((a, b) => (a.studentName || "").localeCompare(b.studentName || ""));
+  }, [cards, selectedClass, search]);
 
   function handlePrint() {
     window.print();
   }
-
-  const examLabel = EXAM_TYPES.find((t) => t.key === examType)?.label;
 
   return (
     <div className="ec-layout">
@@ -338,7 +229,6 @@ export default function ExamCards() {
         </div>
 
         <div className="ec-page-pad" style={{ padding: "26px 30px" }}>
-          {/* Header */}
           <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
             <div
               style={{
@@ -357,7 +247,7 @@ export default function ExamCards() {
             <div>
               <h1 style={{ margin: 0, fontSize: 26, color: "#fff" }}>Exam Cards</h1>
               <div style={{ color: "#8b87ad", fontSize: 14 }}>
-                Samee oo daabac Exam Card ardayda, si toos ah looga soo aqriyo xogtooda
+                Exam Cards ardayda cashierku u sameeyay marka lacagta imtixaanka la bixiyay
               </div>
             </div>
           </div>
@@ -365,6 +255,11 @@ export default function ExamCards() {
           {loading ? (
             <div style={{ color: "#8b87ad", textAlign: "center", padding: 60 }}>
               Xogta ayaa la soo qaadayaa...
+            </div>
+          ) : cards.length === 0 ? (
+            <div style={{ color: "#8b87ad", textAlign: "center", padding: 60 }}>
+              Weli Exam Card lama sameyn. Marka cashierku uu ka qaado lacagta imtixaanka
+              ardayda, cardadku halkan ayay ku soo muuqan doonaan.
             </div>
           ) : !selectedClass ? (
             <div
@@ -375,8 +270,8 @@ export default function ExamCards() {
               }}
             >
               {classes.map((cls) => {
-                const count = students.filter(
-                  (s) => String(s.className).toUpperCase() === cls.toUpperCase()
+                const count = cards.filter(
+                  (c) => String(c.className).toUpperCase() === cls.toUpperCase()
                 ).length;
                 return (
                   <button
@@ -394,18 +289,14 @@ export default function ExamCards() {
                   >
                     <div style={{ fontWeight: 700, fontSize: 16 }}>Fasalka: {cls}</div>
                     <div style={{ color: "#8b87ad", fontSize: 12.5, marginTop: 4 }}>
-                      {count} arday
+                      {count} card oo la sameeyay
                     </div>
                   </button>
                 );
               })}
-              {classes.length === 0 && (
-                <div style={{ color: "#8b87ad" }}>Weli arday lama diiwaan gelin.</div>
-              )}
             </div>
           ) : (
             <div>
-              {/* Toolbar */}
               <div
                 className="ec-toolbar"
                 style={{
@@ -433,34 +324,6 @@ export default function ExamCards() {
 
                 <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
                   <div style={{ position: "relative" }}>
-                    <select
-                      value={examType}
-                      onChange={(e) => setExamType(e.target.value)}
-                      style={{
-                        appearance: "none",
-                        background: "rgba(255,255,255,0.03)",
-                        border: "1px solid rgba(139,108,245,0.3)",
-                        color: "#e5e3f7",
-                        borderRadius: 10,
-                        padding: "9px 32px 9px 14px",
-                        fontSize: 13,
-                        fontWeight: 600,
-                      }}
-                    >
-                      {EXAM_TYPES.map((t) => (
-                        <option key={t.key} value={t.key} style={{ background: "#181430" }}>
-                          {t.label}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown
-                      size={14}
-                      color="#8b87ad"
-                      style={{ position: "absolute", right: 10, top: 11, pointerEvents: "none" }}
-                    />
-                  </div>
-
-                  <div style={{ position: "relative" }}>
                     <Search
                       size={14}
                       color="#8b87ad"
@@ -484,7 +347,7 @@ export default function ExamCards() {
 
                   <button
                     onClick={handlePrint}
-                    disabled={generating || studentsForClass.length === 0}
+                    disabled={cardsForClass.length === 0}
                     style={{
                       display: "flex",
                       alignItems: "center",
@@ -499,42 +362,26 @@ export default function ExamCards() {
                       cursor: "pointer",
                     }}
                   >
-                    {generating ? <Loader2 size={15} /> : <Printer size={15} />}
-                    {generating ? "Diyaarinaya..." : "Daabac Dhammaan"}
+                    <Printer size={15} />
+                    Daabac Dhammaan
                   </button>
                 </div>
               </div>
 
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 8,
-                  color: "#c4b8f7",
-                  fontSize: 13,
-                  marginBottom: 16,
-                }}
-              >
-                <CheckSquare size={14} />
-                Fasalka <strong style={{ color: "#fff" }}>{selectedClass}</strong> — Nooca imtixaanka:{" "}
-                <strong style={{ color: "#fff" }}>{examLabel}</strong> — {studentsForClass.length} arday
+              <div style={{ color: "#c4b8f7", fontSize: 13, marginBottom: 16 }}>
+                Fasalka <strong style={{ color: "#fff" }}>{selectedClass}</strong> —{" "}
+                {cardsForClass.length} card
               </div>
 
-              {studentsForClass.length === 0 ? (
+              {cardsForClass.length === 0 ? (
                 <div style={{ color: "#8b87ad", padding: 30, textAlign: "center" }}>
-                  Arday lama helin fasalkan/raadintan.
+                  Cardad lama helin fasalkan/raadintan.
                 </div>
               ) : (
-                <div className="ec-print-area" ref={printRef}>
+                <div className="ec-print-area">
                   <div className="ec-grid">
-                    {studentsForClass.map((s) => (
-                      <ExamCard
-                        key={s.id}
-                        student={s}
-                        className={selectedClass}
-                        cardNo={cardNos[s.studentId] || 0}
-                        examLabel={examLabel}
-                      />
+                    {cardsForClass.map((c) => (
+                      <ExamCard key={c.id} card={c} />
                     ))}
                   </div>
                 </div>
