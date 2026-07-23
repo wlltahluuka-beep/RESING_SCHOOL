@@ -922,11 +922,51 @@ export default function Timetable() {
                 )}
               </div>
 
-              {/* Read-only summary of the saved week for this class */}
+              {/* Editable summary of the saved week for this class — clicking
+                  a day switches the active day tab so it opens directly in
+                  the session editor above; each session chip also has quick
+                  edit / delete controls. */}
               <WeekSummary
                 selectedClass={selectedClass}
                 timetableDocs={timetableDocs}
                 teachers={teachers}
+                activeDay={activeDay}
+                onEditDay={(dayKey) => setActiveDay(dayKey)}
+                onQuickRemoveSession={async (dayKey, sessionId) => {
+                  const key = `${selectedClass}__${dayKey}`;
+                  const existing = timetableDocs[key];
+                  if (!existing) return;
+                  const remaining = withSessionNumbers(
+                    (existing.sessions || []).filter((s) => s.id !== sessionId)
+                  );
+                  setSaving(true);
+                  try {
+                    let updatedDocs = { ...timetableDocs };
+                    if (remaining.length === 0) {
+                      await deleteDoc(doc(db, "timetable", key));
+                      delete updatedDocs[key];
+                    } else {
+                      const payload = {
+                        className: selectedClass,
+                        day: dayKey,
+                        sessions: remaining,
+                        updatedAt: new Date(),
+                      };
+                      await setDoc(doc(db, "timetable", key), payload);
+                      updatedDocs[key] = payload;
+                    }
+                    setTimetableDocs(updatedDocs);
+                    if (dayKey === activeDay) {
+                      setDraftSessions(remaining.length ? remaining : [emptySession()]);
+                    }
+                    await syncStudentsTimetable(selectedClass, updatedDocs);
+                  } catch (err) {
+                    console.log(err);
+                    alert("Khalad ayaa dhacay marka la tirtirayay: " + err.message);
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
               />
             </div>
           )}
@@ -936,7 +976,14 @@ export default function Timetable() {
   );
 }
 
-function WeekSummary({ selectedClass, timetableDocs, teachers }) {
+function WeekSummary({
+  selectedClass,
+  timetableDocs,
+  teachers,
+  activeDay,
+  onEditDay,
+  onQuickRemoveSession,
+}) {
   const rows = DAYS.map((d) => {
     const key = `${selectedClass}__${d.key}`;
     // Summary view sorts by time for readability — this doesn't touch the editor state.
@@ -945,9 +992,6 @@ function WeekSummary({ selectedClass, timetableDocs, teachers }) {
     );
     return { day: d, sessions };
   });
-
-  const anySessions = rows.some((r) => r.sessions.length > 0);
-  if (!anySessions) return null;
 
   return (
     <div style={{ marginTop: 24 }}>
@@ -959,11 +1003,15 @@ function WeekSummary({ selectedClass, timetableDocs, teachers }) {
           display: "flex",
           alignItems: "center",
           gap: 8,
-          marginBottom: 14,
+          marginBottom: 6,
         }}
       >
         <Users size={16} color="#8B5CF6" /> Jadwalka Toddobaadka — Fasalka {selectedClass}
       </h3>
+      <div style={{ color: "#8b87ad", fontSize: 12.5, marginBottom: 14 }}>
+        Taabo maalin si aad ugu darto ama uga wax bedbeddesho, ama taabo ✕ xiisad si aad si degdeg
+        ah uga tirtirto.
+      </div>
 
       <div className="tt-table-wrap">
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, minWidth: 700 }}>
@@ -971,43 +1019,104 @@ function WeekSummary({ selectedClass, timetableDocs, teachers }) {
             <tr>
               <th style={thStyle}>Maalinta</th>
               <th style={thStyle}>Xiisadaha</th>
+              <th style={thStyle}></th>
             </tr>
           </thead>
           <tbody>
-            {rows.map(({ day, sessions }) => (
-              <tr key={day.key} style={{ borderTop: "1px solid rgba(139,108,245,0.12)" }}>
-                <td style={{ ...tdStyle, fontWeight: 700 }}>{day.label}</td>
-                <td style={tdStyle}>
-                  {sessions.length === 0 ? (
-                    <span style={{ color: "#8b87ad" }}>Ma jiraan xiisad</span>
-                  ) : (
-                    <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-                      {sessions.map((s) => {
-                        const teacherName = teachers[s.teacherId]?.fullName || s.teacherId;
-                        return (
-                          <span
-                            key={s.id}
-                            style={{
-                              background: "rgba(139,108,245,0.1)",
-                              border: "1px solid rgba(139,108,245,0.25)",
-                              borderRadius: 20,
-                              padding: "5px 12px",
-                              color: "#c4b8f7",
-                              fontWeight: 600,
-                              fontSize: 12,
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            #{s.sessionNumber} · {s.startTime}–{s.endTime} · {teacherName}
-                            {s.subject ? ` (${s.subject})` : ""}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  )}
-                </td>
-              </tr>
-            ))}
+            {rows.map(({ day, sessions }) => {
+              const isActiveRow = day.key === activeDay;
+              return (
+                <tr
+                  key={day.key}
+                  style={{
+                    borderTop: "1px solid rgba(139,108,245,0.12)",
+                    background: isActiveRow ? "rgba(139,108,245,0.08)" : "transparent",
+                    cursor: "pointer",
+                  }}
+                  onClick={() => onEditDay?.(day.key)}
+                >
+                  <td style={{ ...tdStyle, fontWeight: 700 }}>{day.label}</td>
+                  <td style={tdStyle}>
+                    {sessions.length === 0 ? (
+                      <span style={{ color: "#8b87ad" }}>Ma jiraan xiisad</span>
+                    ) : (
+                      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+                        {sessions.map((s) => {
+                          const teacherName = teachers[s.teacherId]?.fullName || s.teacherId;
+                          return (
+                            <span
+                              key={s.id}
+                              style={{
+                                display: "inline-flex",
+                                alignItems: "center",
+                                gap: 6,
+                                background: "rgba(139,108,245,0.1)",
+                                border: "1px solid rgba(139,108,245,0.25)",
+                                borderRadius: 20,
+                                padding: "5px 8px 5px 12px",
+                                color: "#c4b8f7",
+                                fontWeight: 600,
+                                fontSize: 12,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              #{s.sessionNumber} · {s.startTime}–{s.endTime} · {teacherName}
+                              {s.subject ? ` (${s.subject})` : ""}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onQuickRemoveSession?.(day.key, s.id);
+                                }}
+                                title="Ka tirtir xiisaddan"
+                                style={{
+                                  width: 18,
+                                  height: 18,
+                                  borderRadius: "50%",
+                                  border: "none",
+                                  background: "rgba(239,68,68,0.2)",
+                                  color: "#EF4444",
+                                  fontSize: 11,
+                                  lineHeight: "18px",
+                                  padding: 0,
+                                  cursor: "pointer",
+                                  flexShrink: 0,
+                                }}
+                              >
+                                ✕
+                              </button>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </td>
+                  <td style={{ ...tdStyle, textAlign: "right" }}>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEditDay?.(day.key);
+                      }}
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: 6,
+                        background: "rgba(34,197,94,0.12)",
+                        border: "1px solid rgba(34,197,94,0.3)",
+                        color: "#22C55E",
+                        padding: "6px 12px",
+                        borderRadius: 8,
+                        fontSize: 12,
+                        fontWeight: 700,
+                        cursor: "pointer",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      <Plus size={12} /> Wax ka beddel
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
