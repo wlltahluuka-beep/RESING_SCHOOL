@@ -1,7 +1,11 @@
+//src/cashier/ReceiptModal.jsx
 import { useEffect, useRef, useState } from "react";
 import {
   doc,
   runTransaction,
+  collection,
+  setDoc,
+  serverTimestamp,
 } from "firebase/firestore";
 import { db } from "../firebase/firebase";
 import { theme } from "./theme.js";
@@ -36,6 +40,31 @@ const getNextReceiptNumber = async () => {
   return String(nextNumber).padStart(3, "0");
 };
 
+// Waxay ku kaydisaa rasiidka collection-ka "receipts" si maamulku ugu
+// daawan karo dhammaan rasiidhada laga sameeyay dashboard-ka. Isticmaalka
+// lambarka rasiidka (padded, tusaale "007") ayaa loo dhigayaa doc ID-ga
+// si loo hubiyo mid kasta oo qeexan oo aan is qabsanayn.
+const saveReceiptRecord = async (receiptNo, payment, paidDate) => {
+  try {
+    const receiptRef = doc(collection(db, "receipts"), receiptNo);
+    await setDoc(receiptRef, {
+      receiptNo,
+      studentId: payment.studentId || null,
+      studentName: payment.studentName || "",
+      className: payment.className || "",
+      monthLabel: payment.monthLabel || "",
+      paidAmount: payment.paidAmount ?? 0,
+      academicYear: academicYearLabel(paidDate),
+      paidAt: paidDate,
+      createdAt: serverTimestamp(),
+    });
+  } catch (err) {
+    // Ha joojin muuqashada/print-ka rasiidka haddii kaydintu fashilanto —
+    // waxaan uun ku qoraynaa console si loo ogaado.
+    console.error("Khalad ayaa dhacay markii rasiidka la kaydinayay:", err);
+  }
+};
+
 export default function ReceiptModal({ payment, onClose }) {
   const [receiptNo, setReceiptNo] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -49,6 +78,11 @@ export default function ReceiptModal({ payment, onClose }) {
         const no = await getNextReceiptNumber();
         if (cancelled) return;
         setReceiptNo(no);
+
+        const paidDate = payment.createdAt?.seconds
+          ? new Date(payment.createdAt.seconds * 1000)
+          : new Date();
+        await saveReceiptRecord(no, payment, paidDate);
       } catch (err) {
         console.log(err);
       } finally {

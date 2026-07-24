@@ -49,13 +49,14 @@ import CashierProfile from "./cashier/Profile";
 import ReceiptModal from "./cashier/ReceiptModal";
 import ExamCards from "./admin/pages/ExamCards";
 import ExamPayments from "./cashier/ExamPayments";
+import Receipts from "./admin/pages/Receipts";
 function App() {
   return (
     <BrowserRouter>
       <Routes>
 
         <Route path="/" element={<Home />} />
-
+        <Route path="/admin/receipts" element={<Receipts />} />
         <Route path="/admin-login" element={<Login role="Admin" />} />
         <Route path="/teacher-login" element={<Login role="Teacher" />} />
         <Route path="/student-login" element={<Login role="Student" />} />

@@ -17,6 +17,7 @@ import {
   HelpCircle,
   Settings,
   Clock,
+  Receipt,
 } from "lucide-react";
 
 import logo from "../assets/logo.png";
@@ -34,6 +35,7 @@ const menus = [
   { name: "Exam Timetable", icon: FileEdit, path: "/admin/exam-timetable" },
   { name: "Exam Cards", icon: IdCard, path: "/admin/exam-cards" },
   { name: "Add Cashier", icon: Wallet, path: "/admin/add-cashier" },
+  { name: "Receipts", icon: Receipt, path: "/admin/receipts" },
   { name: "Messages", icon: MessageCircle, path: "/admin/messages" },
   { name: "Reports", icon: BarChart3, path: "/admin/reports" },
   { name: "Settings", icon: Settings, path: "/admin/settings" },
