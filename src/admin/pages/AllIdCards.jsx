@@ -11,6 +11,8 @@ import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../firebase/firebase";
 import Sidebar from "../components/Sidebar";
 import Topbar from "../components/Topbar";
+import StudentIdCard from "../../student/StudentIdCard";
+import TeacherIdCard from "../../teacher/TeacherIdCard";
 import { Search, Printer, Download, IdCard, GraduationCap, Users } from "lucide-react";
 import html2canvas from "html2canvas";
 
@@ -179,7 +181,7 @@ export default function AllIdCards() {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: selected ? "1fr 1fr" : "1fr", gap: 20 }}>
+          <div style={{ display: "grid", gridTemplateColumns: selected ? "0.9fr 1.4fr" : "1fr", gap: 20, alignItems: "start" }}>
             {/* Results table */}
             <div style={{ ...tableCardStyle, overflowX: "auto" }} className="idcards-print-hide">
               <h3 style={{ margin: "0 0 14px", fontSize: 15, fontWeight: 700, color: "#111827" }}>
@@ -246,7 +248,7 @@ export default function AllIdCards() {
 
             {/* Selected card preview */}
             {selected && (
-              <div style={tableCardStyle}>
+              <div style={{ ...tableCardStyle, overflowX: "auto" }}>
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }} className="idcards-print-hide">
                   <h3 style={{ margin: 0, fontSize: 15, fontWeight: 700, color: "#111827" }}>
                     {selected.type === "student" ? "Student" : "Teacher"} ID Card
@@ -292,7 +294,14 @@ export default function AllIdCards() {
                 </div>
 
                 <div ref={printRef} id="idcards-printable">
-                  <SelectedCardPreview selected={selected} />
+                  {selected.type === "student" ? (
+                    <StudentIdCard student={selected.data} studentId={selected.data.studentId} />
+                  ) : (
+                    <TeacherIdCard
+                      teacher={selected.data}
+                      teacherUsername={selected.data.teacherUsername || selected.data.id}
+                    />
+                  )}
                 </div>
               </div>
             )}
@@ -313,74 +322,6 @@ export default function AllIdCards() {
           }
         }
       `}</style>
-    </div>
-  );
-}
-
-// Lightweight inline preview (front side summary) for the selected card.
-// Reuses the same field layout as the student/teacher card components so
-// it's visually consistent, but stays self-contained here since the
-// admin view only needs a compact reference, not the full front+back
-// card component tree.
-function SelectedCardPreview({ selected }) {
-  const { type, data } = selected;
-
-  if (type === "student") {
-    return (
-      <div
-        style={{
-          width: "100%",
-          maxWidth: 420,
-          margin: "0 auto",
-          border: "1px solid rgba(17,24,39,0.08)",
-          borderRadius: 14,
-          padding: 20,
-          fontFamily: "'Poppins','Inter',sans-serif",
-        }}
-      >
-        <div style={{ fontSize: 17, fontWeight: 800, color: "#1c6b3a", marginBottom: 12 }}>
-          RISING STAR SCHOOL
-        </div>
-        <Row label="STUDENT ID" value={data.studentId} />
-        <Row label="NAME" value={data.fullName} />
-        <Row label="CLASS" value={data.className} />
-        <Row label="SHIFT" value={data.shift} />
-        <Row label="ISSUE DATE" value={formatDate(data.issuedAt || data.idIssuedAt)} />
-        <Row label="EXPIRY DATE" value={formatDate(data.expireDate)} />
-      </div>
-    );
-  }
-
-  return (
-    <div
-      style={{
-        width: "100%",
-        maxWidth: 420,
-        margin: "0 auto",
-        border: "1px solid rgba(17,24,39,0.08)",
-        borderRadius: 14,
-        padding: 20,
-        fontFamily: "'Poppins','Inter',sans-serif",
-      }}
-    >
-      <div style={{ fontSize: 17, fontWeight: 800, color: "#14532d", marginBottom: 12 }}>
-        RISING STAR SCHOOL — TEACHER
-      </div>
-      <Row label="TEACHER ID" value={data.teacherUsername || data.id} />
-      <Row label="NAME" value={data.fullName} />
-      <Row label="MOTHER'S NAME" value={data.matherName || data.motherName || data.parentName} />
-      <Row label="PHONE" value={data.phone || data.phoneNumber} />
-      <Row label="SUBJECT" value={Array.isArray(data.subjects) ? data.subjects.join(", ") : data.subject} />
-      <Row label="ISSUED" value={formatDate(data.issuedAt)} />
-    </div>
-  );
-}
-
-function Row({ label, value }) {
-  return (
-    <div style={{ display: "flex", gap: 10, fontSize: 13, marginBottom: 8 }}>
-      <span style={{ fontWeight: 700, color: "#16202b", minWidth: 110 }}>{label}</span>
-      <span style={{ fontWeight: 700, color: "#1c6b3a" }}>: {value || "—"}</span>
     </div>
   );
 }
