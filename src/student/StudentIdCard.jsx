@@ -46,6 +46,19 @@ function formatDate(d) {
   return { day, month, year, str: `${day}/${month}/${year}` };
 }
 
+// ID cards are valid for exactly one year from the issue date.
+function formatExpiry(d) {
+  if (!d) return null;
+  const dateObj = d?.seconds ? new Date(d.seconds * 1000) : new Date(d);
+  if (isNaN(dateObj.getTime())) return null;
+  const expiryObj = new Date(dateObj);
+  expiryObj.setFullYear(expiryObj.getFullYear() + 1);
+  const day = String(expiryObj.getDate()).padStart(2, "0");
+  const month = String(expiryObj.getMonth() + 1).padStart(2, "0");
+  const year = expiryObj.getFullYear();
+  return { day, month, year, str: `${day}/${month}/${year}` };
+}
+
 function CardStyles() {
   return (
     <style>{`
@@ -97,6 +110,8 @@ function CardStyles() {
       .idc-logo-badge {
         width: 54px;
         height: 54px;
+        min-width: 54px;
+        min-height: 54px;
         border-radius: 50%;
         background: #fff;
         border: 2px solid #1c6b3a;
@@ -106,11 +121,14 @@ function CardStyles() {
         flex-shrink: 0;
         overflow: hidden;
         box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        box-sizing: border-box;
       }
       .idc-logo-badge img {
         width: 100%;
         height: 100%;
-        object-fit: contain;
+        object-fit: cover;
+        border-radius: 50%;
+        display: block;
       }
       .idc-school-block { line-height: 1.05; }
       .idc-school-name1 {
@@ -147,14 +165,14 @@ function CardStyles() {
         display: flex;
         flex-direction: column;
         justify-content: center;
-        gap: 9px;
+        gap: 6px;
         min-width: 0;
       }
       .idc-field-row {
         display: flex;
         align-items: center;
         gap: 8px;
-        font-size: 12px;
+        font-size: 11px;
       }
       .idc-field-icon {
         width: 18px;
@@ -195,7 +213,7 @@ function CardStyles() {
         height: 100px;
         object-fit: cover;
         border-radius: 8px;
-        border: 3px solid #1c6b3a;
+        border: 2px solid #1c6b3a;
         background: #eef3ee;
         box-shadow: 0 4px 10px rgba(0,0,0,0.18);
       }
@@ -203,7 +221,7 @@ function CardStyles() {
         width: 84px;
         height: 100px;
         border-radius: 8px;
-        border: 2px dashed #9db8a4;
+        border: 2px solid #1c6b3a;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -211,6 +229,7 @@ function CardStyles() {
         color: #6b8a73;
         text-align: center;
         padding: 4px;
+        background: #eef3ee;
       }
 
       .idc-front-footer {
@@ -223,16 +242,20 @@ function CardStyles() {
         align-items: center;
         justify-content: space-between;
         gap: 10px;
+        width: 100%;
+        box-sizing: border-box;
       }
       .idc-qr {
         width: 46px;
         height: 46px;
+        min-width: 46px;
         background: #fff;
         border-radius: 4px;
         display: flex;
         align-items: center;
         justify-content: center;
         padding: 3px;
+        box-sizing: border-box;
       }
       .idc-qr img { width: 100%; height: 100%; }
       .idc-signature {
@@ -361,7 +384,7 @@ function Wave({ variant = "front-top" }) {
   );
 }
 
-function CardFront({ student, studentId }) {
+function CardFront({ student, studentId, issued, expiry }) {
   const shift = student?.shift || student?.classShift || "MORNING";
   const qrValue = encodeURIComponent(
     `Rising Star School | Student ID: ${studentId} | Name: ${student?.fullName || ""} | Class: ${student?.className || ""}`
@@ -410,6 +433,18 @@ function CardFront({ student, studentId }) {
             <span className="idc-field-label">SHIFT</span>
             <span className="idc-field-colon">:</span>
             <span className="idc-field-value">{String(shift).toUpperCase()}</span>
+          </div>
+          <div className="idc-field-row">
+            <span className="idc-field-icon">📅</span>
+            <span className="idc-field-label">ISSUE</span>
+            <span className="idc-field-colon">:</span>
+            <span className="idc-field-value">{issued?.str || "—"}</span>
+          </div>
+          <div className="idc-field-row">
+            <span className="idc-field-icon">⏳</span>
+            <span className="idc-field-label">EXPIRY</span>
+            <span className="idc-field-colon">:</span>
+            <span className="idc-field-value">{expiry?.str || "—"}</span>
           </div>
         </div>
 
@@ -461,7 +496,9 @@ function CardBack() {
 }
 
 export default function StudentIdCard({ student, studentId }) {
-  const issued = formatDate(student?.createdAt);
+  const issuedSource = student?.idIssuedAt || student?.createdAt;
+  const issued = formatDate(issuedSource);
+  const expiry = formatExpiry(issuedSource);
   const [saving, setSaving] = useState(false);
 
   // Duplicate the full student record into `studentIdCards/{studentId}`
@@ -483,6 +520,7 @@ export default function StudentIdCard({ student, studentId }) {
             ...student,
             studentId,
             issuedAt: serverTimestamp(),
+            idIssuedAt: serverTimestamp(),
           });
         }
       } catch (err) {
@@ -539,7 +577,7 @@ export default function StudentIdCard({ student, studentId }) {
 
       <div className="idc-wrap">
         <div id="idc-print-front">
-          <CardFront student={student} studentId={studentId} />
+          <CardFront student={student} studentId={studentId} issued={issued} expiry={expiry} />
         </div>
         <div id="idc-print-back">
           <CardBack />
@@ -563,15 +601,10 @@ export default function StudentIdCard({ student, studentId }) {
             boxShadow: "0 10px 24px rgba(20,83,45,0.35)",
           }}
         >
-          🖨️ Print ID Card (Front &amp; Back)
+    
         </button>
       </div>
 
-      {issued?.str && (
-        <div style={{ textAlign: "center", fontSize: 11, color: "#8b97b0", marginTop: 10 }} className="idc-print-hide">
-          Issued: {issued.str}
-        </div>
-      )}
     </div>
   );
 }
